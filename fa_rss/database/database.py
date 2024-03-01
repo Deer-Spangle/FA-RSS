@@ -1,0 +1,95 @@
+import logging
+from contextlib import asynccontextmanager
+from typing import Optional, Tuple, ContextManager, Generator
+
+import psycopg
+from psycopg import AsyncConnection, AsyncCursor
+from psycopg.rows import dict_row
+
+from fa_rss.models import User, Submission
+
+logger = logging.getLogger(__name__)
+
+
+class Database:
+    def __init__(self, db_config: dict):
+        host = db_config.get("host", "localhost")
+        dbname = db_config.get("database", "fa-rss")
+        user = db_config.get("user", "postgres")
+        password = db_config["password"]
+        self.conn_string = f"host={host} dbname={dbname} user={user} password={password}"
+
+    @asynccontextmanager
+    async def cursor(self) -> Generator[tuple[AsyncConnection, AsyncCursor], None, None]:
+        async with await psycopg.AsyncConnection.connect(self.conn_string, row_factory=dict_row) as conn:
+            async with conn.cursor() as cur:
+                yield conn, cur
+
+    async def get_user(self, username: str) -> Optional[User]:
+        async with self.cursor() as (conn, cur):
+            logger.info("Fetch user from DB")
+            await cur.execute(
+                "SELECT username, initialised_date FROM users WHERE username = %s", (username,)
+            )
+            row = await cur.fetchone()
+            if row is None:
+                return None
+            return User(
+                row["username"],
+                row["initialised_date"],
+            )
+
+    async def list_submissions_by_user_gallery(self, username: str, gallery: str) -> list[Submission]:
+        async with self.cursor() as (conn, cur):
+            logger.info("List submissions in DB")
+            return [
+                Submission(
+                    row["submission_id"],
+                    row["username"],
+                    row["gallery"],
+                    row["title"],
+                    row["description"],
+                    row["posted_at"],
+                    row["keywords"],
+                ) async for row in cur.stream(
+                    "SELECT * FROM submissions WHERE username = %s AND gallery = %s ORDER BY submission_id DESC LIMIT 20",
+                    (username, gallery),
+                )
+            ]
+
+    async def get_submission(self, submission_id: int) -> Optional[Submission]:
+        async with self.cursor() as (conn, cur):
+            logger.info("Fetch submission from DB")
+            await cur.execute(
+                "SELECT * FROM submissions WHERE submission_id = %s", (submission_id,)
+            )
+            row = await cur.fetchone()
+            if row is None:
+                return None
+            return Submission(
+                row["submission_id"],
+                row["username"],
+                row["gallery"],
+                row["title"],
+                row["description"],
+                row["posted_at"],
+                row["keywords"],
+            )
+
+    async def save_submission(self, submission: Submission) -> None:
+        async with self.cursor() as (conn, cur):
+            logger.info("Save submission to DB")
+            await cur.execute(
+                "INSERT INTO submissions (submission_id, username, gallery, title, description, posted_at, keywords) VALUES (?,?,?,?,?,?,?)",
+                (submission.submission_id, submission.username, submission.gallery, submission.title, submission.description, submission.posted_at, submission.keywords)
+            )
+            await conn.commit()
+
+    async def save_user(self, user: User) -> None:
+        async with self.cursor() as (conn, cur):
+            logger.info("Save user to DB")
+            await cur.execute(
+                "INSERT INTO users (username, initialised_date) VALUES (?,?)",
+                (user.username, user.date_initialised)
+            )
+            await conn.commit()
