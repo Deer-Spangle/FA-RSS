@@ -2,7 +2,7 @@ import asyncio
 import datetime
 
 from fa_rss.database.database import Database
-from fa_rss.faexport_client import FAExportClient
+from fa_rss.faexport_client import FAExportClient, SubmissionNotFound
 from fa_rss.models import User, Submission
 from fa_rss.settings import Settings
 
@@ -22,15 +22,23 @@ class DataFetcher:
         await self.db.save_submission(submission)
         return submission
 
+    async def fetch_submission_if_exists(self, submission_id: int) -> None:
+        try:
+            await self.fetch_submission(submission_id)
+        except SubmissionNotFound:
+            pass
+
     async def initialise_user_data(self, username: str) -> User:
         user_gallery_ids, user_scraps_ids = await asyncio.gather(
             self.api.get_gallery_ids(username),
             self.api.get_scraps_ids(username),
         )
-        for submission_id in user_gallery_ids:
-            await self.fetch_submission(submission_id)
-        for submission_id in user_scraps_ids:
-            await self.fetch_submission(submission_id)
+        feed_length = await self.settings.get_feed_length()
+        fetch_tasks = [
+            self.fetch_submission_if_exists(sub_id)
+            for sub_id in user_gallery_ids[:feed_length] + user_scraps_ids[:feed_length]
+        ]
+        await asyncio.gather(*fetch_tasks)
         user = User(
             username,
             datetime.datetime.now(datetime.timezone.utc)
