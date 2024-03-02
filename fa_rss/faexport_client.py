@@ -62,4 +62,4 @@ class FAExportClient:
 
     async def get_home_page(self) -> dict[str, list[dict]]:
         logger.info("Fetching home page")
-        return await self._request_with_retry("")
+        return await self._request_with_retry("/home.json")
