@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Any
 
@@ -9,8 +10,17 @@ from fa_rss.models import Submission
 logger = logging.getLogger(__name__)
 
 
+class SubmissionNotFound(Exception):
+    pass
+
+
+class FASlowdown(Exception):
+    pass
+
+
 class FAExportClient:
-    MAX_ATTEMPTS = 5
+    MAX_ATTEMPTS = 7
+
     def __init__(self, config: dict) -> None:
         self.url = config["url"].rstrip("/")
         self.session = aiohttp.ClientSession(self.url)
@@ -19,9 +29,11 @@ class FAExportClient:
         session = aiohttp.ClientSession(self.url)
         async with session.get(path) as resp:
             data = await resp.json()
-            if "error_type" in data:
-                raise Exception(f"API returned error: {data}")  # TODO: better exception
-            return data
+            if str(resp.status)[0] != "5":
+                if isinstance(data, dict) and data.get("error_type") == "fa_slowdown":
+                    raise FASlowdown()
+                return data
+            raise Exception(f"API returned error: {data}")  # TODO: better exception
 
     async def _request_with_retry(self, path: str) -> Any:
         attempts = 0
@@ -33,6 +45,7 @@ class FAExportClient:
                 logger.debug("FAExport API request failed with exception: ", exc_info=e)
                 attempts += 1
                 last_exception = e
+                await asyncio.sleep(2**attempts)
         if last_exception:
             raise last_exception
         raise Exception("Could not make any requests to FAExport API")  # TODO: better exception
@@ -48,6 +61,10 @@ class FAExportClient:
     async def get_submission(self, submission_id: int) -> Submission:
         logger.info("Fetching submission from FAExport")
         resp_data = await self._request_with_retry(f"/submission/{submission_id}.json")
+        if "error_type" in resp_data:
+            if resp_data["error_type"] == "fa_not_found":
+                raise SubmissionNotFound()
+            raise Exception(f"Unknown error: {resp_data}")
         return Submission(
             submission_id,
             resp_data["profile_name"],
