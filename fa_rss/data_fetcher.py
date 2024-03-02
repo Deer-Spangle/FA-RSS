@@ -42,11 +42,24 @@ class DataFetcher:
         self.running = True
         latest_submission_id = await self.settings.get_latest_submission_id()
         while self.running:
+            await asyncio.sleep(10)  # TODO, also logs
             new_latest = await self.fetch_latest_submission_id()
+            if latest_submission_id is None:
+                latest_submission_id = new_latest
+                await self.settings.update_latest_submission_id(latest_submission_id)
+                continue
+            if new_latest <= latest_submission_id:
+                continue
             new_ids = range(latest_submission_id + 1, new_latest + 1)
             for new_id in new_ids:
-                new_submission = await self.fetch_submission(new_id)
-                await self.db.save_submission(new_submission)
+                try:
+                    await self.fetch_submission(new_id)
+                except SubmissionNotFound:
+                    continue
+                latest_submission_id = new_id
+                await self.settings.update_latest_submission_id(latest_submission_id)
+                if not self.running:
+                    break
 
     async def fetch_latest_submission_id(self) -> int:
         home_data = await self.api.get_home_page()
