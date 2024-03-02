@@ -102,12 +102,16 @@ class Database:
         async with self.cursor() as (conn, cur):
             logger.info("Fetch setting from DB")
             await cur.execute("SELECT value FROM settings WHERE key = %s", (setting_key,))
-            result = cur.fetchone()
+            result = await cur.fetchone()
             if result is None:
                 return None
-            return result[0]
+            return result["value"]
 
     async def set_setting_value(self, setting_key: str, setting_value: str) -> None:
         async with self.cursor() as (conn, cur):
             logger.info("Updating setting in DB")
-            await cur.execute # TODO: upsert
+            await cur.execute(
+                "INSERT INTO settings (key, value) VALUES (%s, %s) ON CONFLICT (key) DO UPDATE SET value = %s",
+                (setting_key, setting_value, setting_value)
+            )
+            await conn.commit()
