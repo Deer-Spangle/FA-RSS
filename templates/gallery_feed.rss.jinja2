@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>{{ username | title }}'s {{ gallery | title }}</title>
+    <description>{{ username | title }}'s {{ gallery | title }}</description>
+    <link>https://www.furaffinity.net/{{ gallery }}/{{ username }}/</link>
+    <generator>FA-RSS</generator>
+      {% for submission in submissions %}
+        <item>
+          <title>{{ submission.title }}</title>
+          <link>https://www.furaffinity.net/view/{{ submission.submission_id }}/</link>
+          <description>
+              <a href="https://www.furaffinity.net/view/{{ submission.submission_id }}/">
+                  <img src="{{ submission.thumbnail_url }}" alt="Submission thumbnail" />
+              </a><br/><br/>
+              <p>{{ submission.description }}</p>"
+          </description>
+          <description>{{ submission.description }}</description>
+          <pubDate>Thu, 09 Nov 2023 21:42:00 -0000</pubDate>
+          <guid>https://www.furaffinity.net/view/{{ submission.submission_id }}/</guid>
+            {% for keyword in submission.keywords %}
+              <category>{{ keyword }}</category>
+            {% endfor %}
+        </item>
+    {% endfor %}
+  </channel>
+</rss>
