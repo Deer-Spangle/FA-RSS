@@ -59,3 +59,7 @@ class FAExportClient:
             dateutil.parser.parse(resp_data["posted_at"]),
             resp_data["keywords"],
         )
+
+    async def get_home_page(self) -> dict[str, list[dict]]:
+        logger.info("Fetching home page")
+        return await self._request_with_retry("")
