@@ -11,11 +11,11 @@ class DataFetcher:
         self.db = database
         self.api = api
 
-    async def fetch_submission(self, submission_id: int, gallery: str) -> Submission:
+    async def fetch_submission(self, submission_id: int) -> Submission:
         submission = await self.db.get_submission(submission_id)
         if submission:
             return submission
-        submission = await self.api.get_submission(submission_id, gallery)
+        submission = await self.api.get_submission(submission_id)
         await self.db.save_submission(submission)
         return submission
 
@@ -25,9 +25,9 @@ class DataFetcher:
             self.api.get_scraps_ids(username),
         )
         for submission_id in user_gallery_ids:
-            await self.fetch_submission(submission_id, "gallery")
+            await self.fetch_submission(submission_id)
         for submission_id in user_scraps_ids:
-            await self.fetch_submission(submission_id, "scraps")
+            await self.fetch_submission(submission_id)
         user = User(
             username,
             datetime.datetime.now(datetime.timezone.utc)
