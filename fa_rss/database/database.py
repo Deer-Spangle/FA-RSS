@@ -49,6 +49,8 @@ class Database:
                     row["gallery"],
                     row["title"],
                     row["description"],
+                    row["download_url"],
+                    row["thumbnail_url"],
                     row["posted_at"],
                     row["keywords"],
                 ) async for row in cur.stream(
@@ -72,6 +74,8 @@ class Database:
                 row["gallery"],
                 row["title"],
                 row["description"],
+                row["download_url"],
+                row["thumbnail_url"],
                 row["posted_at"],
                 row["keywords"],
             )
@@ -80,8 +84,8 @@ class Database:
         async with self.cursor() as (conn, cur):
             logger.info("Save submission to DB")
             await cur.execute(
-                "INSERT INTO submissions (submission_id, username, gallery, title, description, posted_at, keywords) VALUES (?,?,?,?,?,?,?)",
-                (submission.submission_id, submission.username, submission.gallery, submission.title, submission.description, submission.posted_at, submission.keywords)
+                "INSERT INTO submissions (submission_id, username, gallery, title, description, download_url, thumbnail_url, posted_at, keywords) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (submission.submission_id, submission.username, submission.gallery, submission.title, submission.description, submission.download_url, submission.thumbnail_url, submission.posted_at, submission.keywords)
             )
             await conn.commit()
 
@@ -89,7 +93,21 @@ class Database:
         async with self.cursor() as (conn, cur):
             logger.info("Save user to DB")
             await cur.execute(
-                "INSERT INTO users (username, initialised_date) VALUES (?,?)",
+                "INSERT INTO users (username, initialised_date) VALUES (%s,%s)",
                 (user.username, user.date_initialised)
             )
             await conn.commit()
+
+    async def get_setting_value(self, setting_key: str) -> Optional[str]:
+        async with self.cursor() as (conn, cur):
+            logger.info("Fetch setting from DB")
+            await cur.execute("SELECT value FROM settings WHERE key = %s", (setting_key,))
+            result = cur.fetchone()
+            if result is None:
+                return None
+            return result[0]
+
+    async def set_setting_value(self, setting_key: str, setting_value: str) -> None:
+        async with self.cursor() as (conn, cur):
+            logger.info("Updating setting in DB")
+            await cur.execute # TODO: upsert

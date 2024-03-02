@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS "submissions" (
   "gallery" text NOT NULL,
   "title" text NOT NULL,
   "description" text NOT NULL,
+  "download_url" text NOT NULL,
+  "thumbnail_url" text NOT NULL,
   "posted_at" timestamptz NOT NULL,
   "keywords" text[] NOT NULL
 );
@@ -12,4 +14,9 @@ CREATE INDEX "submissions_username_gallery" ON "submissions" ("username", "galle
 CREATE TABLE IF NOT EXISTS "users" (
   "username" text NOT NULL PRIMARY KEY,
   "initialised_date" timestamptz NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "settings" (
+    "key" text NOT NULL PRIMARY KEY,
+    "value" text
 );

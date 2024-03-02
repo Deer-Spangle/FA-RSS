@@ -15,5 +15,7 @@ class Submission:
     gallery: str
     title: str
     description: str
+    download_url: str
+    thumbnail_url: str
     posted_at: datetime.datetime
     keywords: list[str]
