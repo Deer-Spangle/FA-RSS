@@ -1,0 +1,19 @@
+---
+version: "3"
+services:
+  fa_rss_server:
+    build:
+      context: ./
+      dockerfile: Dockerfile-server
+    volumes:
+      - ./config.json:/app/config.json
+      - ./logs/server/:/app/logs/
+    ports:
+      - "80:80"
+  fa_rss_fetcher:
+    build:
+      context: ./
+      dockerfile: Dockerfile-fetcher
+    volumes:
+      - ./config.json:/app/config.json
+      - ./logs/fetcher/:/app/logs/

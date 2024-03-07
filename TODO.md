@@ -7,12 +7,12 @@
 - Build gallery list from database
 - Data Fetcher, populating database with all new posts
 - Handle 404 errors and such from API
+- Dockerfile
 
 ## Todo
 - Fix logging
 - Handle slowdown state from API
 - Readme, docs, homepage
-- Dockerfile
 - Prometheus metrics
 - Example nginx config
 - Setup subdomain
