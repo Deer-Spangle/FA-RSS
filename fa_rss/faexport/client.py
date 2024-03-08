@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 class FAExportClient:
     MAX_ATTEMPTS = 7
 
-    def __init__(self, config: dict) -> None:
-        self.url = config["url"].rstrip("/")
+    def __init__(self, url: str) -> None:
+        self.url = url.rstrip("/")
         self.session = aiohttp.ClientSession(self.url)
 
     async def _make_request(self, path: str) -> Any:

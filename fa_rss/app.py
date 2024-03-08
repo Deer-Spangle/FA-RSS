@@ -33,7 +33,7 @@ app_dispatch = DispatcherMiddleware({
 with open("config.json") as f:
     CONFIG = json.load(f)
 DB = Database(CONFIG["database"])
-API = FAExportClient(CONFIG["faexport"])
+API = FAExportClient(CONFIG["faexport"]["url"])
 FETCHER = DataFetcher(DB, API)
 # app.add_background_task(FETCHER.run_data_watcher)
 
