@@ -17,3 +17,5 @@ services:
     volumes:
       - ./config.json:/app/config.json
       - ./logs/fetcher/:/app/logs/
+    ports:
+      - "8080:80"

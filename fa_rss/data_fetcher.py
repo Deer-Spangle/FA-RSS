@@ -1,10 +1,26 @@
 import asyncio
 import datetime
 
+from prometheus_client import Gauge
+
 from fa_rss.database.database import Database
 from fa_rss.faexport_client import FAExportClient, SubmissionNotFound
 from fa_rss.models import User, Submission
 from fa_rss.settings import Settings
+
+
+watcher_startup_time = Gauge(
+    "farss_datafetcher_start_watcher_unixtime",
+    "Unix timestamp of the last time the data watcher was started"
+)
+watcher_latest_id = Gauge(
+    "farss_datafetcher_latest_submission_id",
+    "FA Submission ID of the latest submission to be ingested by the data watcher"
+)
+watcher_latest_posted_at = Gauge(
+    "farss_datafetcher_latest_posted_at_unixtime",
+    "Timestamp of the latest FA submission to be ingested by the data watcher"
+)
 
 
 class DataFetcher:
@@ -47,6 +63,7 @@ class DataFetcher:
         return user
 
     async def run_data_watcher(self) -> None:
+        watcher_startup_time.set_to_current_time()
         self.running = True
         latest_submission_id = await self.settings.get_latest_submission_id()
         while self.running:
@@ -61,9 +78,11 @@ class DataFetcher:
             new_ids = range(latest_submission_id + 1, new_latest + 1)
             for new_id in new_ids:
                 try:
-                    await self.fetch_submission(new_id)
+                    new_submission = await self.fetch_submission(new_id)
                 except SubmissionNotFound:
                     continue
+                watcher_latest_id.set(new_submission.submission_id)
+                watcher_latest_posted_at.set(new_submission.posted_at.timestamp())
                 latest_submission_id = new_id
                 await self.settings.update_latest_submission_id(latest_submission_id)
                 if not self.running:

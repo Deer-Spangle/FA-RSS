@@ -5,6 +5,8 @@ import pathlib
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
+from hypercorn.middleware import DispatcherMiddleware
+from prometheus_client import make_asgi_app, Counter
 from quart import Quart, render_template, abort, make_response
 
 from fa_rss.data_fetcher import DataFetcher
@@ -12,6 +14,21 @@ from fa_rss.database.database import Database
 from fa_rss.faexport_client import FAExportClient
 
 app = Quart(__name__, template_folder=str(pathlib.Path(__file__).parent.parent / "templates"))
+gallery_requests_count = Counter(
+    "farss_server_gallery_request_count",
+    "Number of requests for gallery RSS feeds",
+    ["gallery"],
+)
+gallery_new_user_count = Counter(
+    "farss_server_gallery_new_user_count",
+    "Number of times a new user has been initialised",
+)
+
+app_dispatch = DispatcherMiddleware({
+    "/metrics": make_asgi_app(),
+    "/": app
+})
+
 
 with open("config.json") as f:
     CONFIG = json.load(f)
@@ -30,9 +47,11 @@ def home_page():
 async def gallery_feed(username, gallery):
     if gallery not in ["gallery", "scraps"]:
         abort(404)
+    gallery_requests_count.labels(gallery=gallery).inc()
     user_data = await DB.get_user(username)
     if user_data is None:
         await FETCHER.initialise_user_data(username)
+        gallery_new_user_count.inc()
     user_gallery = await DB.list_submissions_by_user_gallery(username, gallery)
     rss_xml = await render_template(
         "gallery_feed.rss.jinja2",

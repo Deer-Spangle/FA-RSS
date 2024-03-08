@@ -12,4 +12,4 @@ COPY ./templates /app/templates
 WORKDIR /app
 EXPOSE 80
 ENV MODULE_NAME "fa_rss.app"
-ENV VARIABLE_NAME "app"
+ENV VARIABLE_NAME "app_dispatch"
