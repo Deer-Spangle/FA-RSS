@@ -18,8 +18,7 @@ class FAExportClient:
         self.url = url.rstrip("/")
         self.session = aiohttp.ClientSession(self.url)
 
-    async def _make_request(self, path: str) -> Any:
-        session = aiohttp.ClientSession(self.url)
+    async def _make_request(self, session: aiohttp.ClientSession, path: str) -> Any:
         async with session.get(path) as resp:
             data = await resp.json()
             if isinstance(data, dict) and "error_type" in data:
@@ -29,17 +28,18 @@ class FAExportClient:
     async def _request_with_retry(self, path: str) -> Any:
         attempts = 0
         last_exception = None
-        while attempts < self.MAX_ATTEMPTS:
-            try:
-                return await self._make_request(path)
-            except FASlowdown as e:
-                logger.debug("FA returned slowdown error to FAExport API, retrying")
-                attempts += 1
-                last_exception = e
-                await asyncio.sleep(2**attempts)
-            except FAExportAPIError as e:
-                logger.warning("FAExport API request failed with exception: ", exc_info=e)
-                raise e
+        async with aiohttp.ClientSession(self.url) as session:
+            while attempts < self.MAX_ATTEMPTS:
+                try:
+                    return await self._make_request(session, path)
+                except FASlowdown as e:
+                    logger.debug("FA returned slowdown error to FAExport API, retrying")
+                    attempts += 1
+                    last_exception = e
+                    await asyncio.sleep(2**attempts)  # TODO: improve slowdown logic, from FA-search-Bot?
+                except FAExportAPIError as e:
+                    logger.warning("FAExport API request failed with exception: ", exc_info=e)
+                    raise e
         if last_exception:
             raise last_exception
         raise FAExportClientError("Could not make any requests to FAExport API")
