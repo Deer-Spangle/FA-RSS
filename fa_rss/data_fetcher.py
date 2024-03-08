@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import logging
 
 from prometheus_client import Gauge
 
@@ -21,6 +22,9 @@ watcher_latest_posted_at = Gauge(
     "farss_datafetcher_latest_posted_at_unixtime",
     "Timestamp of the latest FA submission to be ingested by the data watcher"
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class DataFetcher:
@@ -67,26 +71,38 @@ class DataFetcher:
         self.running = True
         latest_submission_id = await self.settings.get_latest_submission_id()
         while self.running:
-            await asyncio.sleep(10)  # TODO, also logs
+            await asyncio.sleep(10)
             new_latest = await self.fetch_latest_submission_id()
+            # Set initial high water mark if unset
             if latest_submission_id is None:
+                logger.info("Setting initial submission ID: %s", new_latest)
                 latest_submission_id = new_latest
                 await self.settings.update_latest_submission_id(latest_submission_id)
                 continue
+            # Skip if already seen newer submissions
             if new_latest <= latest_submission_id:
                 continue
+            # Make list of new IDs to check
             new_ids = range(latest_submission_id + 1, new_latest + 1)
             for new_id in new_ids:
+                # Fetch and save new submission
                 try:
                     new_submission = await self.fetch_submission(new_id)
                 except SubmissionNotFound:
                     continue
+                # Update metrics
+                logger.info("Fetched new submission: %s", new_submission.submission_id)
                 watcher_latest_id.set(new_submission.submission_id)
                 watcher_latest_posted_at.set(new_submission.posted_at.timestamp())
                 latest_submission_id = new_id
+                # Update high water mark
                 await self.settings.update_latest_submission_id(latest_submission_id)
+                # Shutdown if asked
                 if not self.running:
                     break
+            # Wait before next fetch
+            logger.info("Waiting before fetching new batch of submissions")
+            await asyncio.sleep(10)
 
     async def fetch_latest_submission_id(self) -> int:
         home_data = await self.api.get_home_page()
