@@ -1,12 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional, Tuple, ContextManager, Generator
+from typing import Optional, Generator
 
 import psycopg
 from psycopg import AsyncConnection, AsyncCursor
 from psycopg.rows import dict_row
 
-from fa_rss.models import User, Submission
+from fa_rss.faexport.models import User, Submission
 
 logger = logging.getLogger(__name__)
 

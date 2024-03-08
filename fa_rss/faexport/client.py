@@ -5,17 +5,10 @@ from typing import Any
 import aiohttp
 import dateutil.parser
 
-from fa_rss.models import Submission
+from fa_rss.faexport.errors import from_error_data, FAExportClientError, FASlowdown, FAExportAPIError
+from fa_rss.faexport.models import Submission
 
 logger = logging.getLogger(__name__)
-
-
-class SubmissionNotFound(Exception):
-    pass
-
-
-class FASlowdown(Exception):
-    pass
 
 
 class FAExportClient:
@@ -29,11 +22,9 @@ class FAExportClient:
         session = aiohttp.ClientSession(self.url)
         async with session.get(path) as resp:
             data = await resp.json()
-            if str(resp.status)[0] != "5":
-                if isinstance(data, dict) and data.get("error_type") == "fa_slowdown":
-                    raise FASlowdown()
-                return data
-            raise Exception(f"API returned error: {data}")  # TODO: better exception
+            if isinstance(data, dict) and "error_type" in data:
+                raise from_error_data(data)
+            return data
 
     async def _request_with_retry(self, path: str) -> Any:
         attempts = 0
@@ -41,14 +32,17 @@ class FAExportClient:
         while attempts < self.MAX_ATTEMPTS:
             try:
                 return await self._make_request(path)
-            except Exception as e:
-                logger.debug("FAExport API request failed with exception: ", exc_info=e)
+            except FASlowdown as e:
+                logger.debug("FA returned slowdown error to FAExport API, retrying")
                 attempts += 1
                 last_exception = e
                 await asyncio.sleep(2**attempts)
+            except FAExportAPIError as e:
+                logger.warning("FAExport API request failed with exception: ", exc_info=e)
+                raise e
         if last_exception:
             raise last_exception
-        raise Exception("Could not make any requests to FAExport API")  # TODO: better exception
+        raise FAExportClientError("Could not make any requests to FAExport API")
 
     async def get_gallery_ids(self, username: str) -> list[int]:
         logger.info("Fetching gallery from FAExport")
@@ -61,10 +55,6 @@ class FAExportClient:
     async def get_submission(self, submission_id: int) -> Submission:
         logger.info("Fetching submission from FAExport")
         resp_data = await self._request_with_retry(f"/submission/{submission_id}.json")
-        if "error_type" in resp_data:
-            if resp_data["error_type"] == "fa_not_found":
-                raise SubmissionNotFound()
-            raise Exception(f"Unknown error: {resp_data}")
         return Submission(
             submission_id,
             resp_data["profile_name"],

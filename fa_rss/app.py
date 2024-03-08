@@ -11,7 +11,7 @@ from quart import Quart, render_template, abort, make_response
 
 from fa_rss.data_fetcher import DataFetcher
 from fa_rss.database.database import Database
-from fa_rss.faexport_client import FAExportClient
+from fa_rss.faexport.client import FAExportClient
 
 app = Quart(__name__, template_folder=str(pathlib.Path(__file__).parent.parent / "templates"))
 gallery_requests_count = Counter(
