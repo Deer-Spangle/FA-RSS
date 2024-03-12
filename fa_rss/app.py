@@ -9,7 +9,7 @@ from logging.handlers import TimedRotatingFileHandler
 import tomlkit
 from hypercorn.middleware import DispatcherMiddleware
 from prometheus_client import make_asgi_app, Counter
-from quart import Quart, render_template, abort, make_response
+from quart import Quart, render_template, abort, make_response, Response
 
 from fa_rss.data_fetcher import DataFetcher
 from fa_rss.database.database import Database
@@ -53,17 +53,24 @@ async def home_page():
     )
 
 
-@app.get('/browse.rss')
-async def browse_feed():
-    recent_submissions = await DB.list_recent_submissions()
+async def render_rss(template: str, **template_args) -> Response:
     rss_xml = await render_template(
-        "browse_feed.rss.jinja2",
-        submissions=recent_submissions,
-        format_datetime=email.utils.format_datetime,
+        template,
+        **template_args,
     )
     response = await make_response(rss_xml)
     response.headers['Content-Type'] = "application/rss+xml"
     return response
+
+
+@app.get('/browse.rss')
+async def browse_feed():
+    recent_submissions = await DB.list_recent_submissions()
+    return await render_rss(
+        "browse_feed.rss.jinja2",
+        submissions=recent_submissions,
+        format_datetime=email.utils.format_datetime,
+    )
 
 
 @app.get('/user/<username>/<gallery>.rss')
@@ -76,16 +83,13 @@ async def gallery_feed(username, gallery):
         await FETCHER.initialise_user_data(username)
         gallery_new_user_count.inc()
     user_gallery = await DB.list_submissions_by_user_gallery(username, gallery)
-    rss_xml = await render_template(
+    return await render_rss(
         "gallery_feed.rss.jinja2",
         username=username,
         gallery=gallery,
         submissions=user_gallery,
         format_datetime=email.utils.format_datetime,
     )
-    response = await make_response(rss_xml)
-    response.headers['Content-Type'] = 'application/rss+xml'
-    return response
 
 
 def setup_logging() -> None:
