@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+from asyncio import Semaphore
 
 from prometheus_client import Gauge, Counter
 
@@ -62,8 +63,14 @@ class DataFetcher:
             self.api.get_gallery_ids(username),
             self.api.get_scraps_ids(username),
         )
+        # Maximum of 5 submissions requested at a time
+        sem = Semaphore(5)
+
+        async def _fetch_wrapper(sub_id: int) -> None:
+            async with sem:
+                return await self.fetch_submission_if_exists(sub_id)
         fetch_tasks = [
-            self.fetch_submission_if_exists(sub_id)
+            _fetch_wrapper(sub_id)
             for sub_id in user_gallery_ids + user_scraps_ids
         ]
         await asyncio.gather(*fetch_tasks)
