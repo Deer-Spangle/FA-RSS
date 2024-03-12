@@ -31,6 +31,7 @@ app_dispatch = DispatcherMiddleware({
     "/metrics": make_asgi_app(),
     "/": app
 })
+app.select_jinja_autoescape = lambda filename: filename is not None and filename.endswith((".rss.jinja2", ".html.jinja2"))
 
 
 with open("config.json") as f:
