@@ -19,3 +19,12 @@ class Submission:
     thumbnail_url: str
     posted_at: datetime.datetime
     keywords: list[str]
+
+
+@dataclass
+class SiteStatus:
+    online_guests: int
+    online_registered: int
+    online_other: int
+    online_total: int
+    fa_server_time_at: datetime.datetime
