@@ -161,7 +161,7 @@ class Database:
         async with self.cursor() as (conn, cur):
             logger.info("Save user to DB")
             await cur.execute(
-                "INSERT INTO users (username, initialised_date) VALUES (%s,%s)",
+                "INSERT INTO users (username, initialised_date) VALUES (%s,%s) ON CONFLICT (username) DO NOTHING",
                 (user.username, user.date_initialised)
             )
             await conn.commit()
