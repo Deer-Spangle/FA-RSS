@@ -70,3 +70,14 @@ class FAExportClient:
     async def get_home_page(self) -> dict[str, list[dict]]:
         logger.info("Fetching home page")
         return await self._request_with_retry("/home.json")
+
+    async def get_status(self) -> SiteStatus:
+        logger.debug("Fetching status endpoint")
+        resp = await self._request_with_retry("/status.json")
+        return SiteStatus(
+            resp["online"]["guests"],
+            resp["online"]["registered"],
+            resp["online"]["other"],
+            resp["online"]["total"],
+            dateutil.parser.parse(resp["fa_server_time_at"]),
+        )
