@@ -5,6 +5,7 @@ import pathlib
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
+import tomlkit
 from hypercorn.middleware import DispatcherMiddleware
 from prometheus_client import make_asgi_app, Counter
 from quart import Quart, render_template, abort, make_response
@@ -39,8 +40,16 @@ FETCHER = DataFetcher(DB, API)
 
 
 @app.get("/")
-def home_page():
-    return "Hey there. This project is a prototype. Quite an early one."
+async def home_page():
+    toml_path = pathlib.Path(__file__).parent.parent / "pyproject.toml"
+    with open(toml_path) as pyproject:
+        file_contents = pyproject.read()
+
+    version = tomlkit.parse(file_contents)["tool"]["poetry"]["version"]
+    return await render_template(
+        "home.html.jinja2",
+        version=version,
+    )
 
 
 @app.get('/user/<username>/<gallery>.rss')

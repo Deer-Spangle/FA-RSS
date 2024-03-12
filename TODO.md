@@ -12,10 +12,9 @@
 - Fix logging
 - Handle slowdown state from API
 - Readme
+- Homepage
 
 ## Todo
-- Homepage
-- Docs?
 - Example nginx config
 - Setup subdomain
 

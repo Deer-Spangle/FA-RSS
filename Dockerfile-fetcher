@@ -8,6 +8,7 @@ FROM python:3.11
 COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 COPY ./fa_rss /app/fa_rss
-COPY main.py /app/main.py
+COPY ./main.py /app/main.py
+COPY ./pyproject.toml /app/pyproject.toml
 WORKDIR /app
 CMD ["python", "main.py", "data_fetcher"]
