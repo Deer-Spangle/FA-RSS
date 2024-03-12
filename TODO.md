@@ -9,15 +9,14 @@
 - Handle 404 errors and such from API
 - Dockerfile
 - Prometheus metrics
-
-## Todo
 - Fix logging
 - Handle slowdown state from API
+
+## Todo
 - Readme, docs, homepage
 - Example nginx config
 - Setup subdomain
 - DB connectionpool
-- API sessionpool
 
 
 ## Stretch goals
