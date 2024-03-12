@@ -82,6 +82,7 @@ async def browse_feed():
 async def gallery_feed(username, gallery):
     if gallery not in ["gallery", "scraps"]:
         abort(404)
+    sfw_mode = request.args.get("sfw") == "1"
     gallery_requests_count.labels(gallery=gallery).inc()
     user_data = await DB.get_user(username)
     settings = Settings(DB)
@@ -90,9 +91,9 @@ async def gallery_feed(username, gallery):
         gallery_new_user_count.inc()
         app.add_background_task(FETCHER.initialise_user_data, username)
         if gallery == "gallery":
-            preview_submissions = await API.get_gallery_full(username)
+            preview_submissions = await API.get_gallery_full(username, sfw_mode=sfw_mode)
         elif gallery == "scraps":
-            preview_submissions = await API.get_scraps_full(username)
+            preview_submissions = await API.get_scraps_full(username, sfw_mode=sfw_mode)
         else:
             abort(404)
         preview_submissions = preview_submissions[:feed_length]
@@ -102,7 +103,7 @@ async def gallery_feed(username, gallery):
             gallery=gallery,
             submissions=preview_submissions,
         )
-    user_gallery = await DB.list_submissions_by_user_gallery(username, gallery, limit=feed_length)
+    user_gallery = await DB.list_submissions_by_user_gallery(username, gallery, limit=feed_length, sfw_mode=sfw_mode)
     return await render_rss(
         "gallery_feed.rss.jinja2",
         username=username,

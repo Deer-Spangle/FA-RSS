@@ -133,9 +133,10 @@ class FAExportClient:
         logger.info("Fetching scraps from FAExport")
         return await self._request_with_retry(f"/user/{username}/scraps.json")
 
-    async def get_gallery_full(self, username: str) -> list[SubmissionPreview]:
+    async def get_gallery_full(self, username: str, *, sfw_mode: bool = False) -> list[SubmissionPreview]:
         logger.info("Fetching full gallery info from FAExport")
-        results = await self._request_with_retry(f"/user/{username}/gallery.json?full=1")
+        sfw_param = "&sfw=1" if sfw_mode else ""
+        results = await self._request_with_retry(f"/user/{username}/gallery.json?full=1{sfw_param}")
         return [
             SubmissionPreview(
                 int(item["id"]),
@@ -147,9 +148,10 @@ class FAExportClient:
             for item in results
         ]
 
-    async def get_scraps_full(self, username: str) -> list[SubmissionPreview]:
-        logger.info("Fetching full gallery info from FAExport")
-        results = await self._request_with_retry(f"/user/{username}/scraps.json?full=1")
+    async def get_scraps_full(self, username: str, *, sfw_mode: bool = False) -> list[SubmissionPreview]:
+        logger.info("Fetching full scraps info from FAExport")
+        sfw_param = "&sfw=1" if sfw_mode else ""
+        results = await self._request_with_retry(f"/user/{username}/scraps.json?full=1{sfw_param}")
         return [
             SubmissionPreview(
                 int(item["id"]),
