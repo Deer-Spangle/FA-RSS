@@ -18,8 +18,20 @@
   - Then remove the slow comment from readme
 
 ## Todo
-- Example nginx config
-- Setup subdomain
+- Deploy it
+  - Setup subdomain
+  - Deploy it to VPS
+  - Set up prometheus scraping
+  - Set up grafana alerts if data fetcher lag too big
+  - Leave it running for a while to populate data and back cache
+  - Test out an example feed
+    - Create one test feed on FAExport in an RSS reader
+    - Set nginx to forward that one feed endpoint to FA RSS instead of FAExport
+  - Pre-populate all feeds currently being requested from FAExport
+  - Change nginx rules to send all gallery.rss and scraps.rss requests to FA RSS
+
+- Make repo public
+- Publish docker images
 
 
 ## Stretch goals
