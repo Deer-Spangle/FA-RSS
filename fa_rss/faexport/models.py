@@ -22,6 +22,15 @@ class Submission:
 
 
 @dataclass
+class SubmissionPreview:
+    submission_id: int
+    title: str
+    thumbnail_url: str
+    link: str
+    username: str
+
+
+@dataclass
 class SiteStatus:
     online_guests: int
     online_registered: int

@@ -8,7 +8,7 @@ import aiohttp
 import dateutil.parser
 
 from fa_rss.faexport.errors import from_error_data, FAExportClientError, FASlowdown, FAExportAPIError
-from fa_rss.faexport.models import Submission, SiteStatus
+from fa_rss.faexport.models import Submission, SiteStatus, SubmissionPreview
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +120,34 @@ class FAExportClient:
     async def get_scraps_ids(self, username: str) -> list[int]:
         logger.info("Fetching scraps from FAExport")
         return await self._request_with_retry(f"/user/{username}/scraps.json")
+
+    async def get_gallery_full(self, username: str) -> list[SubmissionPreview]:
+        logger.info("Fetching full gallery info from FAExport")
+        results = await self._request_with_retry(f"/user/{username}/gallery.json?full=1")
+        return [
+            SubmissionPreview(
+                int(item["id"]),
+                item["title"],
+                item["thumbnail"],
+                item["link"],
+                item["profile_name"]
+            )
+            for item in results
+        ]
+
+    async def get_scraps_full(self, username: str) -> list[SubmissionPreview]:
+        logger.info("Fetching full gallery info from FAExport")
+        results = await self._request_with_retry(f"/user/{username}/scraps.json?full=1")
+        return [
+            SubmissionPreview(
+                int(item["id"]),
+                item["title"],
+                item["thumbnail"],
+                item["link"],
+                item["profile_name"]
+            )
+            for item in results
+        ]
 
     async def get_submission(self, submission_id: int) -> Submission:
         logger.info("Fetching submission from FAExport")
