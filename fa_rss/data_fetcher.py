@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import logging
 
-from prometheus_client import Gauge
+from prometheus_client import Gauge, Counter
 
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
@@ -22,6 +22,14 @@ watcher_latest_id = Gauge(
 watcher_latest_posted_at = Gauge(
     "farss_datafetcher_latest_posted_at_unixtime",
     "Timestamp of the latest FA submission to be ingested by the data watcher"
+)
+watcher_submissions_saved = Counter(
+    "farss_datafetcher_saved_submissions_count",
+    "Count of how many submissions have been saved by the data fetcher"
+)
+watcher_submissions_deleted = Counter(
+    "farss_datafetcher_deleted_submissions_count",
+    "Count of how many submissions were deleted before the data fetcher could fetch them"
 )
 
 
@@ -90,11 +98,13 @@ class DataFetcher:
                 try:
                     new_submission = await self.fetch_submission(new_id)
                 except SubmissionNotFound:
+                    watcher_submissions_deleted.inc()
                     continue
                 # Update metrics
                 logger.info("Fetched new submission: %s", new_submission.submission_id)
                 watcher_latest_id.set(new_submission.submission_id)
                 watcher_latest_posted_at.set(new_submission.posted_at.timestamp())
+                watcher_submissions_saved.inc()
                 latest_submission_id = new_id
                 # Update high water mark
                 await self.settings.update_latest_submission_id(latest_submission_id)
