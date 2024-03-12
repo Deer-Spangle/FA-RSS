@@ -59,10 +59,14 @@ class DataFetcher:
             pass
 
     async def initialise_user_data(self, username: str) -> User:
-        user_gallery_ids, user_scraps_ids = await asyncio.gather(
+        # Initialise the latest page of the user's gallery and scraps, and the latest sfw page of each
+        gallery_id_lists = await asyncio.gather(
             self.api.get_gallery_ids(username),
             self.api.get_scraps_ids(username),
+            self.api.get_gallery_ids(username, sfw_mode=True),
+            self.api.get_scraps_ids(username, sfw_mode=True),
         )
+        submission_ids = list(set(sum(gallery_id_lists, start=[])))
         # Maximum of 5 submissions requested at a time
         sem = Semaphore(5)
 
@@ -71,7 +75,7 @@ class DataFetcher:
                 return await self.fetch_submission_if_exists(sub_id)
         fetch_tasks = [
             _fetch_wrapper(sub_id)
-            for sub_id in user_gallery_ids + user_scraps_ids
+            for sub_id in submission_ids
         ]
         await asyncio.gather(*fetch_tasks)
         user = User(

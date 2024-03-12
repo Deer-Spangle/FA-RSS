@@ -87,6 +87,11 @@ class FASlowdownState:
         return self.slowdown_status
 
 
+def _sfw_param(sfw_mode: bool, first_param: bool = True) -> str:
+    connector = "?" if first_param else "&"
+    return f"{connector}sfw=1" if sfw_mode else ""
+
+
 class FAExportClient:
     MAX_ATTEMPTS = 7
 
@@ -125,17 +130,19 @@ class FAExportClient:
             raise last_exception
         raise FAExportClientError("Could not make any requests to FAExport API")
 
-    async def get_gallery_ids(self, username: str) -> list[int]:
+    async def get_gallery_ids(self, username: str, *, sfw_mode: bool = False) -> list[int]:
         logger.info("Fetching gallery from FAExport")
-        return await self._request_with_retry(f"/user/{username}/gallery.json")
+        sfw_param = _sfw_param(sfw_mode)
+        return await self._request_with_retry(f"/user/{username}/gallery.json{sfw_param}")
 
-    async def get_scraps_ids(self, username: str) -> list[int]:
+    async def get_scraps_ids(self, username: str, *, sfw_mode: bool = False) -> list[int]:
         logger.info("Fetching scraps from FAExport")
-        return await self._request_with_retry(f"/user/{username}/scraps.json")
+        sfw_param = _sfw_param(sfw_mode)
+        return await self._request_with_retry(f"/user/{username}/scraps.json{sfw_param}")
 
     async def get_gallery_full(self, username: str, *, sfw_mode: bool = False) -> list[SubmissionPreview]:
         logger.info("Fetching full gallery info from FAExport")
-        sfw_param = "&sfw=1" if sfw_mode else ""
+        sfw_param = _sfw_param(sfw_mode, False)
         results = await self._request_with_retry(f"/user/{username}/gallery.json?full=1{sfw_param}")
         return [
             SubmissionPreview(
@@ -150,7 +157,7 @@ class FAExportClient:
 
     async def get_scraps_full(self, username: str, *, sfw_mode: bool = False) -> list[SubmissionPreview]:
         logger.info("Fetching full scraps info from FAExport")
-        sfw_param = "&sfw=1" if sfw_mode else ""
+        sfw_param = _sfw_param(sfw_mode, False)
         results = await self._request_with_retry(f"/user/{username}/scraps.json?full=1{sfw_param}")
         return [
             SubmissionPreview(
@@ -179,9 +186,10 @@ class FAExportClient:
             resp_data["keywords"],
         )
 
-    async def get_home_page(self) -> dict[str, list[dict]]:
+    async def get_home_page(self, *, sfw_mode: bool = False) -> dict[str, list[dict]]:
         logger.info("Fetching home page")
-        return await self._request_with_retry("/home.json")
+        sfw_param = _sfw_param(sfw_mode)
+        return await self._request_with_retry(f"/home.json{sfw_param}")
 
     async def get_status(self) -> SiteStatus:
         logger.debug("Fetching status endpoint")
