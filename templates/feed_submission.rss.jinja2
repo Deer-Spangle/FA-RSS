@@ -8,7 +8,6 @@
       </a><br/><br/>
       <p>{{ submission.description }}</p>"
   </description>
-  <description>{{ submission.description }}</description>
   <pubDate>{{ format_datetime(submission.posted_at) }}</pubDate>
   <guid>https://www.furaffinity.net/view/{{ submission.submission_id }}/</guid>
     {% for keyword in submission.keywords %}
