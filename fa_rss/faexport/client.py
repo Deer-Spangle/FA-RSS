@@ -1,14 +1,77 @@
 import asyncio
+import datetime
 import logging
-from typing import Any
+import uuid
+from typing import Any, Optional
 
 import aiohttp
 import dateutil.parser
 
 from fa_rss.faexport.errors import from_error_data, FAExportClientError, FASlowdown, FAExportAPIError
-from fa_rss.faexport.models import Submission
+from fa_rss.faexport.models import Submission, SiteStatus
 
 logger = logging.getLogger(__name__)
+
+
+class RateLimiter:
+    SLEEP_TIME = 0.25
+
+    def __init__(self, time_between_requests: datetime.timedelta) -> None:
+        self.time_between_requests = time_between_requests
+        self.last_request: Optional[datetime.datetime] = None
+        self.request_queue: list[str] = []
+
+    async def wait(self) -> None:
+        request_id = self._make_request()
+        while not (self._my_request_up_next(request_id) and self._is_time()):
+            await asyncio.sleep(self.SLEEP_TIME)
+        self.request_queue.pop(0)
+        self.last_request = datetime.datetime.now()
+        return
+
+    def _is_time(self) -> bool:
+        now = datetime.datetime.now()
+        if self.last_request is None:
+            return True
+        return (self.last_request + self.time_between_requests) < now
+
+    def _make_request(self) -> str:
+        request_id = f"{uuid.uuid4()}"
+        self.request_queue.append(request_id)
+        return request_id
+
+    def _my_request_up_next(self, request_id: str) -> bool:
+        return len(self.request_queue) > 0 and self.request_queue[0] == request_id
+
+
+class FASlowdownState:
+    STATUS_LIMIT_REGISTERED = 10_000
+
+    def __init__(self, client: "FAExportClient") -> None:
+        self.client = client
+        self.ignore = False
+        # How slow to go when site is in slowdown mode
+        self.limiter = RateLimiter(time_between_requests=datetime.timedelta(seconds=1))
+        # How often to check whether site is in slowdown mode
+        self.last_check: Optional[datetime.datetime] = None
+        self.status_check_backoff = datetime.timedelta(minutes=5)
+        self.slowdown_status = False
+
+    async def wait(self) -> None:
+        await self.limiter.wait()
+
+    async def should_slowdown(self) -> bool:
+        if self.ignore:
+            return False
+        now = datetime.datetime.now()
+        if (
+            self.last_check is None
+            or (self.last_check + self.status_check_backoff) < now
+        ):
+            status = await self.client.get_status()
+            self.last_check = now
+            self.slowdown_status = status.online_registered > self.STATUS_LIMIT_REGISTERED
+        return self.slowdown_status
 
 
 class FAExportClient:
@@ -17,8 +80,14 @@ class FAExportClient:
     def __init__(self, url: str) -> None:
         self.url = url.rstrip("/")
         self.session = aiohttp.ClientSession(self.url)
+        self.slowdown = FASlowdownState(self)
 
     async def _make_request(self, session: aiohttp.ClientSession, path: str) -> Any:
+        # If FA is in slowdown state, then slow requests a bit
+        if "status.json" not in path and await self.slowdown.should_slowdown():
+            logger.debug("FA is in bot slowdown mode, checking rate limit")
+            await self.slowdown.wait()
+        # Make the request
         async with session.get(path) as resp:
             data = await resp.json()
             if isinstance(data, dict) and "error_type" in data:
@@ -36,7 +105,7 @@ class FAExportClient:
                     logger.debug("FA returned slowdown error to FAExport API, retrying")
                     attempts += 1
                     last_exception = e
-                    await asyncio.sleep(2**attempts)  # TODO: improve slowdown logic, from FA-search-Bot?
+                    await asyncio.sleep(2**attempts)
                 except FAExportAPIError as e:
                     logger.warning("FAExport API request failed with exception: ", exc_info=e)
                     raise e
