@@ -1,12 +1,10 @@
 {% macro render_submission(submission) %}
+{% from 'feed_submission_preview_description.html.jinja2' import render_submission_description %}
 <item>
   <title>{{ submission.title }}</title>
   <link>https://www.furaffinity.net/view/{{ submission.submission_id }}/</link>
   <description>
-      <a href="https://www.furaffinity.net/view/{{ submission.submission_id }}/">
-          <img src="{{ submission.thumbnail_url }}" alt="Submission thumbnail" />
-      </a><br/><br/>
-      <p>(Description not yet available, RSS feed initialising)</p>"
+      {{ render_submission_description(submission) | forceescape }}
   </description>
   <guid>https://www.furaffinity.net/view/{{ submission.submission_id }}/</guid>
 </item>
