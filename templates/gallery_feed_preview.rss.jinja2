@@ -1,0 +1,14 @@
+{% extends 'feed_base.rss.jinja2' %}
+
+{% block title %}{{ username | title }}'s {{ gallery | title }}{% endblock %}
+
+{% block description %}{{ username | title }}'s {{ gallery | title }}{% endblock %}
+
+{% block feed_link %}https://www.furaffinity.net/{{ gallery }}/{{ username }}/{% endblock %}
+
+{% block items %}
+  {% from 'feed_submission_preview.rss.jinja2' import render_submission with context %}
+  {% for submission in submissions %}
+    {{ render_submission(submission) }}
+  {% endfor %}
+{% endblock %}

@@ -85,8 +85,21 @@ async def gallery_feed(username, gallery):
     settings = Settings(DB)
     feed_length = await settings.get_feed_length()
     if user_data is None:
-        await FETCHER.initialise_user_data(username)
         gallery_new_user_count.inc()
+        app.add_background_task(FETCHER.initialise_user_data, username)
+        if gallery == "gallery":
+            preview_submissions = await API.get_gallery_full(username)
+        elif gallery == "scraps":
+            preview_submissions = await API.get_scraps_full(username)
+        else:
+            abort(404)
+        preview_submissions = preview_submissions[:feed_length]
+        return await render_rss(
+            "gallery_feed_preview.rss.jinja2",
+            username=username,
+            gallery=gallery,
+            submissions=preview_submissions,
+        )
     user_gallery = await DB.list_submissions_by_user_gallery(username, gallery, limit=feed_length)
     return await render_rss(
         "gallery_feed.rss.jinja2",

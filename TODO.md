@@ -14,6 +14,8 @@
 - Readme
 - Homepage
 - Browse endpoint
+- Return RSS feed preview on first fetch (for speed)
+  - Then remove the slow comment from readme
 
 ## Todo
 - Example nginx config
@@ -27,6 +29,7 @@
   - Submissions endpoint
 - Maybe journals endpoint?
 - DB connectionpool?
+- Speed up data fetcher with concurrent data fetcher workers
 
 ## Potential future expansion
 - Store more post metadata?
