@@ -16,7 +16,6 @@
 - Readme, docs, homepage
 - Example nginx config
 - Setup subdomain
-- DB connectionpool
 
 
 ## Stretch goals
@@ -24,8 +23,8 @@
 - Auth endpoints
   - Auth via get params maybe? 
   - Submissions endpoint
-- Clean up old metadata from DB
 - Maybe journals endpoint?
+- DB connectionpool?
 
 ## Potential future expansion
 - Store more post metadata?
