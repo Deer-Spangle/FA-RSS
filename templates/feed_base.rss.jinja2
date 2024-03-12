@@ -1,0 +1,15 @@
+{% from 'feed_submission.rss.jinja2' import render_submission with context %}
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>{% block title %}{% endblock %}</title>
+    <description>{% block description %}{% endblock %}</description>
+    <link>{% block feed_link %}{% endblock %}</link>
+    <generator>FA-RSS</generator>
+      {% block items %}
+          {% for submission in submissions %}
+            {{ render_submission(submission) }}
+          {% endfor %}
+      {% endblock %}
+  </channel>
+</rss>

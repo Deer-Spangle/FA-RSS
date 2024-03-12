@@ -1,13 +1,8 @@
-{% from 'feed_submission.rss.jinja2' import render_submission with context %}
-<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
-  <channel>
-    <title>{{ username | title }}'s {{ gallery | title }}</title>
-    <description>{{ username | title }}'s {{ gallery | title }}</description>
-    <link>https://www.furaffinity.net/{{ gallery }}/{{ username }}/</link>
-    <generator>FA-RSS</generator>
-      {% for submission in submissions %}
-          {{ render_submission(submission) }}
-    {% endfor %}
-  </channel>
-</rss>
+{% extends 'feed_base.rss.jinja2' %}
+
+{% block title %}{{ username | title }}'s {{ gallery | title }}{% endblock %}
+
+{% block description %}{{ username | title }}'s {{ gallery | title }}{% endblock %}
+
+{% block feed_link %}https://www.furaffinity.net/{{ gallery }}/{{ username }}/{% endblock %}
+
