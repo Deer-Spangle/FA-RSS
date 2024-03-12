@@ -11,9 +11,11 @@
 - Prometheus metrics
 - Fix logging
 - Handle slowdown state from API
+- Readme
 
 ## Todo
-- Readme, docs, homepage
+- Homepage
+- Docs?
 - Example nginx config
 - Setup subdomain
 
