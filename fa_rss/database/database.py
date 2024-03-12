@@ -104,8 +104,30 @@ class Database:
         async with self.cursor() as (conn, cur):
             logger.info("Save submission to DB")
             await cur.execute(
-                "INSERT INTO submissions (submission_id, username, gallery, title, description, download_url, thumbnail_url, posted_at, keywords) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                (submission.submission_id, submission.username, submission.gallery, submission.title, submission.description, submission.download_url, submission.thumbnail_url, submission.posted_at, submission.keywords)
+                "INSERT INTO submissions ("
+                "  submission_id, username, gallery, title, description, download_url, thumbnail_url, posted_at, "
+                "  keywords"
+                " ) "
+                " VALUES ("
+                "  %(submission_id)s, %(username)s, %(gallery)s, %(title)s, %(description)s, %(download_url)s, "
+                "  %(thumbnail_url)s, %(posted_at)s, %(keywords)s"
+                " ) "
+                " ON CONFLICT (submission_id) "
+                " DO UPDATE SET "
+                "  username = %(username)s, gallery = %(gallery)s, title = %(title)s, description = %(description)s, "
+                "  download_url = %(download_url)s, thumbnail_url = %(thumbnail_url)s, posted_at = %(posted_at)s, "
+                "  keywords = %(keywords)s",
+                {
+                    'submission_id': submission.submission_id,
+                    'username': submission.username,
+                    'gallery': submission.gallery,
+                    'title': submission.title,
+                    'description': submission.description,
+                    'download_url': submission.download_url,
+                    'thumbnail_url': submission.thumbnail_url,
+                    'posted_at': submission.posted_at,
+                    'keywords': submission.keywords,
+                }
             )
             await conn.commit()
 
