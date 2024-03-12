@@ -53,6 +53,19 @@ async def home_page():
     )
 
 
+@app.get('/browse.rss')
+async def browse_feed():
+    recent_submissions = await DB.list_recent_submissions()
+    rss_xml = await render_template(
+        "browse_feed.rss.jinja2",
+        submissions=recent_submissions,
+        format_datetime=email.utils.format_datetime,
+    )
+    response = await make_response(rss_xml)
+    response.headers['Content-Type'] = "application/rss+xml"
+    return response
+
+
 @app.get('/user/<username>/<gallery>.rss')
 async def gallery_feed(username, gallery):
     if gallery not in ["gallery", "scraps"]:

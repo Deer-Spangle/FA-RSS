@@ -13,6 +13,7 @@
 - Handle slowdown state from API
 - Readme
 - Homepage
+- Browse endpoint
 
 ## Todo
 - Example nginx config

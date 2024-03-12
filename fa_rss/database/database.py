@@ -39,9 +39,28 @@ class Database:
                 row["initialised_date"],
             )
 
+    async def list_recent_submissions(self) -> list[Submission]:
+        async with self.cursor() as (conn, cur):
+            logger.info("List recent submissions in DB")
+            return [
+                Submission(
+                    row["submission_id"],
+                    row["username"],
+                    row["gallery"],
+                    row["title"],
+                    row["description"],
+                    row["download_url"],
+                    row["thumbnail_url"],
+                    row["posted_at"],
+                    row["keywords"],
+                ) async for row in cur.stream(
+                    "SELECT * FROM submissions ORDER BY submission_id DESC LIMIT 20"
+                )
+            ]
+
     async def list_submissions_by_user_gallery(self, username: str, gallery: str) -> list[Submission]:
         async with self.cursor() as (conn, cur):
-            logger.info("List submissions in DB")
+            logger.info("List submissions in gallery from DB")
             return [
                 Submission(
                     row["submission_id"],

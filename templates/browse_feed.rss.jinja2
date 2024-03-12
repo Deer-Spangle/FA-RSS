@@ -1,0 +1,13 @@
+{% from 'feed_submission.rss.jinja2' import render_submission with context %}
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>FurAffinity browse, all submissions</title>
+    <description>All new submissions on FurAffinity</description>
+    <link>https://www.furaffinity.net/browse/</link>
+    <generator>FA-RSS</generator>
+      {% for submission in submissions %}
+          {{ render_submission(submission) }}
+    {% endfor %}
+  </channel>
+</rss>
