@@ -10,6 +10,8 @@ from fa_rss.faexport.models import User, Submission
 
 logger = logging.getLogger(__name__)
 
+SFW_RATING = "General"
+
 
 class Database:
     def __init__(self, db_config: dict):
@@ -39,7 +41,10 @@ class Database:
                 row["initialised_date"],
             )
 
-    async def list_recent_submissions(self, *, limit: int = 20) -> list[Submission]:
+    async def list_recent_submissions(self, *, limit: int = 20, sfw_mode: bool = False) -> list[Submission]:
+        rating: Optional[str] = None
+        if sfw_mode is True:
+            rating = SFW_RATING
         async with self.cursor() as (conn, cur):
             logger.info("List recent submissions in DB")
             return [
@@ -55,12 +60,21 @@ class Database:
                     row["rating"],
                     row["keywords"],
                 ) async for row in cur.stream(
-                    "SELECT * FROM submissions ORDER BY submission_id DESC LIMIT %s",
-                    (limit,)
+                    "SELECT * FROM submissions"
+                    " WHERE (%(rating)s::text IS NULL OR rating = %(rating)s::text)"
+                    " ORDER BY submission_id DESC"
+                    " LIMIT %(limit)s",
+                    {
+                        "rating": rating,
+                        "limit": limit,
+                    }
                 )
             ]
 
-    async def list_submissions_by_user_gallery(self, username: str, gallery: str, *, limit: int = 20) -> list[Submission]:
+    async def list_submissions_by_user_gallery(self, username: str, gallery: str, *, limit: int = 20, sfw_mode: bool = False) -> list[Submission]:
+        rating: Optional[str] = None
+        if sfw_mode:
+            rating = SFW_RATING
         async with self.cursor() as (conn, cur):
             logger.info("List submissions in gallery from DB")
             return [
@@ -76,8 +90,16 @@ class Database:
                     row["rating"],
                     row["keywords"],
                 ) async for row in cur.stream(
-                    "SELECT * FROM submissions WHERE username = %s AND gallery = %s ORDER BY submission_id DESC LIMIT %s",
-                    (username, gallery, limit),
+                    "SELECT * FROM submissions"
+                    " WHERE username = %(username)s AND gallery = %(gallery)s AND (%(rating)s::text IS NULL OR rating = %(rating)s::text)"
+                    " ORDER BY submission_id DESC"
+                    " LIMIT %(limit)s",
+                    {
+                        "username": username,
+                        "gallery": gallery,
+                        "limit": limit,
+                        "rating": rating,
+                    },
                 )
             ]
 

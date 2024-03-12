@@ -9,7 +9,7 @@ from logging.handlers import TimedRotatingFileHandler
 import tomlkit
 from hypercorn.middleware import DispatcherMiddleware
 from prometheus_client import make_asgi_app, Counter
-from quart import Quart, render_template, abort, make_response, Response
+from quart import Quart, render_template, abort, make_response, Response, request
 
 from fa_rss.data_fetcher import DataFetcher
 from fa_rss.database.database import Database
@@ -67,9 +67,10 @@ async def render_rss(template: str, **template_args) -> Response:
 
 @app.get('/browse.rss')
 async def browse_feed():
+    sfw_mode = request.args.get("sfw") == "1"
     settings = Settings(DB)
     feed_length = await settings.get_feed_length()
-    recent_submissions = await DB.list_recent_submissions(limit=feed_length)
+    recent_submissions = await DB.list_recent_submissions(limit=feed_length, sfw_mode=sfw_mode)
     return await render_rss(
         "browse_feed.rss.jinja2",
         submissions=recent_submissions,
