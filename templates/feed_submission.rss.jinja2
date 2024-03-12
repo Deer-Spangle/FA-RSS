@@ -1,0 +1,18 @@
+{% macro render_submission(submission) %}
+<item>
+  <title>{{ submission.title }}</title>
+  <link>https://www.furaffinity.net/view/{{ submission.submission_id }}/</link>
+  <description>
+      <a href="https://www.furaffinity.net/view/{{ submission.submission_id }}/">
+          <img src="{{ submission.thumbnail_url }}" alt="Submission thumbnail" />
+      </a><br/><br/>
+      <p>{{ submission.description }}</p>"
+  </description>
+  <description>{{ submission.description }}</description>
+  <pubDate>{{ format_datetime(submission.posted_at) }}</pubDate>
+  <guid>https://www.furaffinity.net/view/{{ submission.submission_id }}/</guid>
+    {% for keyword in submission.keywords %}
+      <category>{{ keyword }}</category>
+    {% endfor %}
+</item>
+{% endmacro %}

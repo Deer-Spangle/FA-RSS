@@ -1,3 +1,4 @@
+import email.utils
 import json
 import logging
 import os
@@ -67,6 +68,7 @@ async def gallery_feed(username, gallery):
         username=username,
         gallery=gallery,
         submissions=user_gallery,
+        format_datetime=email.utils.format_datetime,
     )
     response = await make_response(rss_xml)
     response.headers['Content-Type'] = 'application/rss+xml'
