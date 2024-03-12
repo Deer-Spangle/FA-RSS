@@ -52,6 +52,7 @@ class Database:
                     row["download_url"],
                     row["thumbnail_url"],
                     row["posted_at"],
+                    row["rating"],
                     row["keywords"],
                 ) async for row in cur.stream(
                     "SELECT * FROM submissions ORDER BY submission_id DESC LIMIT %s",
@@ -72,6 +73,7 @@ class Database:
                     row["download_url"],
                     row["thumbnail_url"],
                     row["posted_at"],
+                    row["rating"],
                     row["keywords"],
                 ) async for row in cur.stream(
                     "SELECT * FROM submissions WHERE username = %s AND gallery = %s ORDER BY submission_id DESC LIMIT %s",
@@ -97,6 +99,7 @@ class Database:
                 row["download_url"],
                 row["thumbnail_url"],
                 row["posted_at"],
+                row["rating"],
                 row["keywords"],
             )
 
@@ -106,17 +109,17 @@ class Database:
             await cur.execute(
                 "INSERT INTO submissions ("
                 "  submission_id, username, gallery, title, description, download_url, thumbnail_url, posted_at, "
-                "  keywords"
+                "  rating, keywords"
                 " ) "
                 " VALUES ("
                 "  %(submission_id)s, %(username)s, %(gallery)s, %(title)s, %(description)s, %(download_url)s, "
-                "  %(thumbnail_url)s, %(posted_at)s, %(keywords)s"
+                "  %(thumbnail_url)s, %(posted_at)s, %(rating)s, %(keywords)s"
                 " ) "
                 " ON CONFLICT (submission_id) "
                 " DO UPDATE SET "
                 "  username = %(username)s, gallery = %(gallery)s, title = %(title)s, description = %(description)s, "
                 "  download_url = %(download_url)s, thumbnail_url = %(thumbnail_url)s, posted_at = %(posted_at)s, "
-                "  keywords = %(keywords)s",
+                "  rating = %(rating)s, keywords = %(keywords)s",
                 {
                     'submission_id': submission.submission_id,
                     'username': submission.username,
@@ -126,6 +129,7 @@ class Database:
                     'download_url': submission.download_url,
                     'thumbnail_url': submission.thumbnail_url,
                     'posted_at': submission.posted_at,
+                    'rating': submission.rating,
                     'keywords': submission.keywords,
                 }
             )

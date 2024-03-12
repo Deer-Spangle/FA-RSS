@@ -18,6 +18,7 @@ class Submission:
     download_url: str
     thumbnail_url: str
     posted_at: datetime.datetime
+    rating: str
     keywords: list[str]
 
 

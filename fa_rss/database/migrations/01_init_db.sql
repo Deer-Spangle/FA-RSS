@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS "submissions" (
   "download_url" text NOT NULL,
   "thumbnail_url" text NOT NULL,
   "posted_at" timestamptz NOT NULL,
+  "rating" text NOT NULL,
   "keywords" text[] NOT NULL
 );
 CREATE INDEX "submissions_username_gallery" ON "submissions" ("username", "gallery");

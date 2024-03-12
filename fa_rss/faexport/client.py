@@ -173,6 +173,7 @@ class FAExportClient:
             resp_data["download"],
             resp_data["thumbnail"],
             dateutil.parser.parse(resp_data["posted_at"]),
+            resp_data["rating"],
             resp_data["keywords"],
         )
 
