@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class RateLimiter:
-    SLEEP_TIME = 0.25
 
     def __init__(self, time_between_requests: datetime.timedelta) -> None:
         self.time_between_requests = time_between_requests
@@ -23,17 +22,26 @@ class RateLimiter:
 
     async def wait(self) -> None:
         request_id = self._make_request()
-        while not (self._my_request_up_next(request_id) and self._is_time()):
-            await asyncio.sleep(self.SLEEP_TIME)
+        while not self._my_request_up_next(request_id):
+            await asyncio.sleep(self.time_between_requests.total_seconds())
+        remaining_time = self._remaining_time()
+        while remaining_time > datetime.timedelta(seconds=0):
+            await asyncio.sleep(remaining_time.total_seconds())
+            remaining_time = self._remaining_time()
         self.request_queue.pop(0)
         self.last_request = datetime.datetime.now()
         return
 
-    def _is_time(self) -> bool:
+    def _remaining_time(self) -> datetime.timedelta:
+        last_request = self.last_request
+        if last_request is None:
+            return datetime.timedelta(seconds=0)
+        next_request = last_request + self.time_between_requests
         now = datetime.datetime.now()
-        if self.last_request is None:
-            return True
-        return (self.last_request + self.time_between_requests) < now
+        return next_request - now
+
+    def _is_time(self) -> bool:
+        return self._remaining_time() <= datetime.timedelta(seconds=0)
 
     def _make_request(self) -> str:
         request_id = f"{uuid.uuid4()}"
@@ -56,6 +64,11 @@ class FASlowdownState:
         self.last_check: Optional[datetime.datetime] = None
         self.status_check_backoff = datetime.timedelta(minutes=5)
         self.slowdown_status = False
+
+    async def wait_if_needed(self) -> None:
+        if await self.should_slowdown():
+            logger.debug("FA is in bot slowdown mode, checking rate limit")
+            await self.wait()
 
     async def wait(self) -> None:
         await self.limiter.wait()
@@ -84,9 +97,8 @@ class FAExportClient:
 
     async def _make_request(self, session: aiohttp.ClientSession, path: str) -> Any:
         # If FA is in slowdown state, then slow requests a bit
-        if "status.json" not in path and await self.slowdown.should_slowdown():
-            logger.debug("FA is in bot slowdown mode, checking rate limit")
-            await self.slowdown.wait()
+        if "status.json" not in path:
+            await self.slowdown.wait_if_needed()
         # Make the request
         async with session.get(path) as resp:
             data = await resp.json()
