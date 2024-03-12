@@ -14,6 +14,7 @@ from quart import Quart, render_template, abort, make_response, Response
 from fa_rss.data_fetcher import DataFetcher
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
+from fa_rss.settings import Settings
 
 app = Quart(__name__, template_folder=str(pathlib.Path(__file__).parent.parent / "templates"))
 gallery_requests_count = Counter(
@@ -65,7 +66,9 @@ async def render_rss(template: str, **template_args) -> Response:
 
 @app.get('/browse.rss')
 async def browse_feed():
-    recent_submissions = await DB.list_recent_submissions()
+    settings = Settings(DB)
+    feed_length = await settings.get_feed_length()
+    recent_submissions = await DB.list_recent_submissions(limit=feed_length)
     return await render_rss(
         "browse_feed.rss.jinja2",
         submissions=recent_submissions,
@@ -79,10 +82,12 @@ async def gallery_feed(username, gallery):
         abort(404)
     gallery_requests_count.labels(gallery=gallery).inc()
     user_data = await DB.get_user(username)
+    settings = Settings(DB)
+    feed_length = await settings.get_feed_length()
     if user_data is None:
         await FETCHER.initialise_user_data(username)
         gallery_new_user_count.inc()
-    user_gallery = await DB.list_submissions_by_user_gallery(username, gallery)
+    user_gallery = await DB.list_submissions_by_user_gallery(username, gallery, limit=feed_length)
     return await render_rss(
         "gallery_feed.rss.jinja2",
         username=username,

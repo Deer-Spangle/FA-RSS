@@ -39,7 +39,7 @@ class Database:
                 row["initialised_date"],
             )
 
-    async def list_recent_submissions(self) -> list[Submission]:
+    async def list_recent_submissions(self, *, limit: int = 20) -> list[Submission]:
         async with self.cursor() as (conn, cur):
             logger.info("List recent submissions in DB")
             return [
@@ -54,11 +54,12 @@ class Database:
                     row["posted_at"],
                     row["keywords"],
                 ) async for row in cur.stream(
-                    "SELECT * FROM submissions ORDER BY submission_id DESC LIMIT 20"
+                    "SELECT * FROM submissions ORDER BY submission_id DESC LIMIT %s",
+                    (limit,)
                 )
             ]
 
-    async def list_submissions_by_user_gallery(self, username: str, gallery: str) -> list[Submission]:
+    async def list_submissions_by_user_gallery(self, username: str, gallery: str, *, limit: int = 20) -> list[Submission]:
         async with self.cursor() as (conn, cur):
             logger.info("List submissions in gallery from DB")
             return [
@@ -73,8 +74,8 @@ class Database:
                     row["posted_at"],
                     row["keywords"],
                 ) async for row in cur.stream(
-                    "SELECT * FROM submissions WHERE username = %s AND gallery = %s ORDER BY submission_id DESC LIMIT 20",
-                    (username, gallery),
+                    "SELECT * FROM submissions WHERE username = %s AND gallery = %s ORDER BY submission_id DESC LIMIT %s",
+                    (username, gallery, limit),
                 )
             ]
 
