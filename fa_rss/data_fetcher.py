@@ -62,10 +62,9 @@ class DataFetcher:
             self.api.get_gallery_ids(username),
             self.api.get_scraps_ids(username),
         )
-        feed_length = await self.settings.get_feed_length()
         fetch_tasks = [
             self.fetch_submission_if_exists(sub_id)
-            for sub_id in user_gallery_ids[:feed_length] + user_scraps_ids[:feed_length]
+            for sub_id in user_gallery_ids + user_scraps_ids
         ]
         await asyncio.gather(*fetch_tasks)
         user = User(
