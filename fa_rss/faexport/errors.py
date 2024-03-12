@@ -8,7 +8,7 @@ class FAExportError(Exception):
 class FAExportAPIError(FAExportError):
     err_type: Optional[str] = None
 
-    def __init__(self, msg: str, url: str) -> None:
+    def __init__(self, msg: str, url: Optional[str]) -> None:
         self.msg = msg
         self.url = url
 
@@ -16,7 +16,8 @@ class FAExportAPIError(FAExportError):
         msg = self.msg
         if self.err_type is not None:
             f"{self.err_type}: {self.msg}"
-        return f"{type(self).__name__}({msg} ({self.url}))"
+        msg += f" ({self.url})" if self.url is not None else ""
+        return f"{type(self).__name__}({msg})"
 
 
 class FAExportClientError(FAExportError):
@@ -28,7 +29,7 @@ class FAExportClientError(FAExportError):
 
 
 class UnrecognisedError(FAExportAPIError):
-    def __init__(self, err_type: str, msg: str, url: str) -> None:
+    def __init__(self, err_type: str, msg: str, url: Optional[str]) -> None:
         self.err_type = err_type
         self.msg = msg
         self.url = url
@@ -83,7 +84,7 @@ class FASlowdown(FAExportAPIError):
 
 
 class FAExportUnknownError(FAExportAPIError):
-    def __init__(self, err_type: str, msg: str, url: str) -> None:
+    def __init__(self, err_type: str, msg: str, url: Optional[str]) -> None:
         self.err_type = err_type
         self.msg = msg
         self.url = url
@@ -96,7 +97,7 @@ class FACloudflareError(FAExportAPIError):
 def from_error_data(error_data: dict) -> FAExportAPIError:
     error_type = error_data["error_type"]
     msg = error_data["error"]
-    url = error_data["url"]
+    url = error_data.get("url")
     err_classes = [
         FormError, InvalidOffset, InvalidSearchParameters, IncorrectFAStyle, FALoginError, InvalidFACookies,
         InaccessibleToGuests, BlockedByContentFilter, SubmissionNotFound, UserNotFound, FAUserDisabled, FASlowdown,
