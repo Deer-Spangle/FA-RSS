@@ -16,17 +16,22 @@
 - Browse endpoint
 - Return RSS feed preview on first fetch (for speed)
   - Then remove the slow comment from readme
-
-## Todo
-- Deploy it
+- Deploying it
   - Setup subdomain
   - Deploy it to VPS
   - Set up prometheus scraping
   - Set up grafana alerts if data fetcher lag too big
+  - Test out example feed
+    - Test 1: Set up a feed in feed readers on FAExport, then redirect those RSS requests to FA-RSS, observe result
+      - Results [RSSTT]: Old submissions from the bottom of the feed got posted as new items, as FA-RSS feeds are longer
+      - Results [Podcast Addict]: Old submissions from the bottom of the feed are added as unread items at the bottom of the feed
+    - Test 2: Create a new feed of an uninitialized user, see if the reader accepts the preview descriptions and pub dates, then updates with full descriptions later
+      - Results [Podcast Addict]: Old descriptions and pub dates remain, unless feed is reset
+      - Results [RSSTT]: Initial items are not posted, no sign of reposting when feed is updated
+
+## Todo
+- Deploy it
   - Leave it running for a while to populate data and back cache
-  - Test out an example feed
-    - Create one test feed on FAExport in an RSS reader
-    - Set nginx to forward that one feed endpoint to FA RSS instead of FAExport
   - Pre-populate all feeds currently being requested from FAExport
   - Change nginx rules to send all gallery.rss and scraps.rss requests to FA RSS
 
