@@ -66,6 +66,7 @@ class FASlowdownState:
         if await self.should_slowdown():
             logger.debug("FA is in bot slowdown mode, checking rate limit")
             await self.wait()
+            logger.debug("Rate limit delay completed")
 
     async def wait(self) -> None:
         await self.limiter.wait()
