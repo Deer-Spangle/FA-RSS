@@ -33,7 +33,7 @@ class FAExportClient:
         async with session.get(path) as resp:
             data = await resp.json()
             if isinstance(data, dict) and "error_type" in data:
-                raise from_error_data(data)
+                raise from_error_data(data, path)
             return data
 
     async def _request_with_retry(self, path: str) -> Any:

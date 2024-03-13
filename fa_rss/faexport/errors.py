@@ -8,16 +8,17 @@ class FAExportError(Exception):
 class FAExportAPIError(FAExportError):
     err_type: Optional[str] = None
 
-    def __init__(self, msg: str, url: Optional[str]) -> None:
+    def __init__(self, msg: str, fa_url: Optional[str], api_path: str) -> None:
         self.msg = msg
-        self.url = url
+        self.fa_url = fa_url
+        self.api_path = api_path
 
     def __str__(self) -> str:
         msg = self.msg
         if self.err_type is not None:
             f"{self.err_type}: {self.msg}"
-        msg += f" ({self.url})" if self.url is not None else ""
-        return f"{type(self).__name__}({msg})"
+        msg += f" ({self.fa_url})" if self.fa_url is not None else ""
+        return f"{type(self).__name__}(path={self.api_path}, msg={msg})"
 
 
 class FAExportClientError(FAExportError):
@@ -29,10 +30,9 @@ class FAExportClientError(FAExportError):
 
 
 class UnrecognisedError(FAExportAPIError):
-    def __init__(self, err_type: str, msg: str, url: Optional[str]) -> None:
+    def __init__(self, err_type: str, msg: str, fa_url: Optional[str], api_path: str) -> None:
+        super().__init__(msg, fa_url, api_path)
         self.err_type = err_type
-        self.msg = msg
-        self.url = url
 
 
 class FormError(FAExportAPIError):
@@ -84,20 +84,19 @@ class FASlowdown(FAExportAPIError):
 
 
 class FAExportUnknownError(FAExportAPIError):
-    def __init__(self, err_type: str, msg: str, url: Optional[str]) -> None:
+    def __init__(self, err_type: str, msg: str, fa_url: Optional[str], api_path: str) -> None:
+        super().__init__(msg, fa_url, api_path)
         self.err_type = err_type
-        self.msg = msg
-        self.url = url
 
 
 class FACloudflareError(FAExportAPIError):
     err_type = "fa_cloudflare"
 
 
-def from_error_data(error_data: dict) -> FAExportAPIError:
+def from_error_data(error_data: dict, path: str) -> FAExportAPIError:
     error_type = error_data["error_type"]
     msg = error_data["error"]
-    url = error_data.get("url")
+    fa_url = error_data.get("url")
     err_classes = [
         FormError, InvalidOffset, InvalidSearchParameters, IncorrectFAStyle, FALoginError, InvalidFACookies,
         InaccessibleToGuests, BlockedByContentFilter, SubmissionNotFound, UserNotFound, FAUserDisabled, FASlowdown,
@@ -110,7 +109,7 @@ def from_error_data(error_data: dict) -> FAExportAPIError:
         klass.err_type: klass for klass in err_classes
     }.get(error_type)
     if klass is not None:
-        return klass(msg, url)
+        return klass(msg, fa_url, path)
     if error_type in known_unknown_types:
-        return FAExportUnknownError(error_type, msg, url)
-    return UnrecognisedError(error_type, msg, url)
+        return FAExportUnknownError(error_type, msg, fa_url, path)
+    return UnrecognisedError(error_type, msg, fa_url, path)
