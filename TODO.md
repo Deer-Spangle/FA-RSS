@@ -16,6 +16,7 @@
 - Browse endpoint
 - Return RSS feed preview on first fetch (for speed)
   - Then remove the slow comment from readme
+- Make repo public
 - Deploying it
   - Setup subdomain
   - Deploy it to VPS
@@ -36,7 +37,7 @@
   - Pre-populate all feeds currently being requested from FAExport
   - Change nginx rules to send all gallery.rss and scraps.rss requests to FA RSS
 
-- Make repo public
+- Test that asyncio.gather(API.get_submission()) actually obeys rate limit properly?
 - Publish docker images
 
 
