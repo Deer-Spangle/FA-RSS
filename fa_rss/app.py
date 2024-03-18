@@ -15,7 +15,7 @@ from fa_rss.data_fetcher import DataFetcher
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
 from fa_rss.settings import Settings
-from utils import find_thumbnail_url
+from fa_rss.utils import find_thumbnail_url
 
 app = Quart(__name__, template_folder=str(pathlib.Path(__file__).parent.parent / "templates"))
 gallery_requests_count = Counter(
