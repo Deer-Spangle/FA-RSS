@@ -15,6 +15,7 @@ from fa_rss.data_fetcher import DataFetcher
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
 from fa_rss.settings import Settings
+from utils import find_thumbnail_url
 
 app = Quart(__name__, template_folder=str(pathlib.Path(__file__).parent.parent / "templates"))
 gallery_requests_count = Counter(
@@ -110,6 +111,7 @@ async def gallery_feed(username, gallery):
         gallery=gallery,
         submissions=user_gallery,
         format_datetime=email.utils.format_datetime,
+        find_thumbnail_url=find_thumbnail_url,
     )
 
 
