@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS "submissions" (
   "title" text NOT NULL,
   "description" text NOT NULL,
   "download_url" text NOT NULL,
-  "thumbnail_url" text NOT NULL,
+  "thumbnail_url" text,
   "posted_at" timestamptz NOT NULL,
   "rating" text NOT NULL,
   "keywords" text[] NOT NULL

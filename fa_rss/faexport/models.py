@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -16,7 +17,7 @@ class Submission:
     title: str
     description: str
     download_url: str
-    thumbnail_url: str
+    thumbnail_url: Optional[str]  # Only null for swf submissions, (even though submission preview includes them)
     posted_at: datetime.datetime
     rating: str
     keywords: list[str]
