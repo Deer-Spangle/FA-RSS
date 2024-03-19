@@ -41,6 +41,8 @@ API = FAExportClient(CONFIG["faexport"]["url"])
 FETCHER = DataFetcher(DB, API)
 # app.add_background_task(FETCHER.run_data_watcher)
 
+logger = logging.getLogger(__name__)
+
 
 @app.get("/")
 async def home_page():
@@ -89,7 +91,9 @@ async def gallery_feed(username, gallery):
     feed_length = await settings.get_feed_length()
     if user_data is None:
         gallery_new_user_count.inc()
+        logger.info("Scheduled background task to initialise user data: %s", username)
         app.add_background_task(FETCHER.initialise_user_data, username)
+        logger.info("Generating preview feed for user: %s", username)
         if gallery == "gallery":
             preview_submissions = await API.get_gallery_full(username, sfw_mode=sfw_mode)
         elif gallery == "scraps":
