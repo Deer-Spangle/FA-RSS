@@ -1,6 +1,6 @@
 {% macro render_submission_description(submission) %}
   <a href="https://www.furaffinity.net/view/{{ submission.submission_id }}/">
-      <img src="{{ find_thumbnail_url(submission) }}" alt="Submission thumbnail" />
+      <img src="{{ submission.thumbnail_url }}" alt="Submission thumbnail" />
   </a><br/><br/>
   <p>{{ submission.description | safe }}</p>
 {% endmacro %}

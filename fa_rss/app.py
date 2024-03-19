@@ -1,4 +1,3 @@
-import email.utils
 import json
 import logging
 import os
@@ -14,8 +13,8 @@ from quart import Quart, render_template, abort, make_response, Response, reques
 from fa_rss.data_fetcher import DataFetcher
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
+from fa_rss.feed_item import FeedItemFull, FeedItemPreview
 from fa_rss.settings import Settings
-from fa_rss.utils import find_thumbnail_url
 
 app = Quart(__name__, template_folder=str(pathlib.Path(__file__).parent.parent / "templates"))
 gallery_requests_count = Counter(
@@ -72,10 +71,10 @@ async def browse_feed():
     settings = Settings(DB)
     feed_length = await settings.get_feed_length()
     recent_submissions = await DB.list_recent_submissions(limit=feed_length, sfw_mode=sfw_mode)
+    recent_items = [FeedItemFull(sub) for sub in recent_submissions]
     return await render_rss(
         "browse_feed.rss.jinja2",
-        submissions=recent_submissions,
-        format_datetime=email.utils.format_datetime,
+        submissions=recent_items,
     )
 
 
@@ -98,20 +97,26 @@ async def gallery_feed(username, gallery):
         else:
             abort(404)
         preview_submissions = preview_submissions[:feed_length]
+        feed_items = []
+        for submission_preview in preview_submissions:
+            full_submission = await DB.get_submission(submission_preview.submission_id)
+            if full_submission is None:
+                feed_items.append(FeedItemPreview(submission_preview))
+            else:
+                feed_items.append(FeedItemFull(full_submission))
         return await render_rss(
-            "gallery_feed_preview.rss.jinja2",
+            "gallery_feed.rss.jinja2",
             username=username,
             gallery=gallery,
             submissions=preview_submissions,
         )
     user_gallery = await DB.list_submissions_by_user_gallery(username, gallery, limit=feed_length, sfw_mode=sfw_mode)
+    user_items = [FeedItemFull(sub) for sub in user_gallery]
     return await render_rss(
         "gallery_feed.rss.jinja2",
         username=username,
         gallery=gallery,
-        submissions=user_gallery,
-        format_datetime=email.utils.format_datetime,
-        find_thumbnail_url=find_thumbnail_url,
+        submissions=user_items,
     )
 
 
