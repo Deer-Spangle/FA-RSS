@@ -30,13 +30,13 @@
     - Test 2: Create a new feed of an uninitialized user, see if the reader accepts the preview descriptions and pub dates, then updates with full descriptions later
       - Results [Podcast Addict]: Old descriptions and pub dates remain, unless feed is reset
       - Results [RSSTT]: Initial items are not posted, no sign of reposting when feed is updated
+  - Leave it running for a while to populate data and back cache
 
 ## Todo
 - Deploy it
-  - Leave it running for a while to populate data and back cache
   - Pre-populate all feeds currently being requested from FAExport
   - Change nginx rules to send all gallery.rss and scraps.rss requests to FA RSS
-
+- Write some automated system tests
 - Test that asyncio.gather(API.get_submission()) actually obeys rate limit properly?
 - Publish docker images
 
