@@ -1,5 +1,5 @@
 {% macro render_submission(submission) %}
-{% from 'feed_submission_description.html.jinja2' import render_submission_description %}
+{% from 'feed_submission_description.html.jinja2' import render_submission_description with context %}
 <item>
   <title>{{ submission.title }}</title>
   <link>https://www.furaffinity.net/view/{{ submission.submission_id }}/</link>
