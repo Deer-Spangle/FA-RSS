@@ -5,6 +5,8 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile-server
+    environment:
+      - WEB_CONCURRENCY=1
     volumes:
       - ./config.json:/app/config.json
       - ./logs/server/:/app/logs/
