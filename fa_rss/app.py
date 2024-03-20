@@ -112,7 +112,7 @@ async def gallery_feed(username, gallery):
             "gallery_feed.rss.jinja2",
             username=username,
             gallery=gallery,
-            submissions=preview_submissions,
+            submissions=feed_items,
         )
     user_gallery = await DB.list_submissions_by_user_gallery(username, gallery, limit=feed_length, sfw_mode=sfw_mode)
     user_items = [FeedItemFull(sub) for sub in user_gallery]
