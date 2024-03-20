@@ -2,6 +2,8 @@ import asyncio
 import datetime
 import logging
 from asyncio import Semaphore
+from contextlib import contextmanager
+from typing import Iterator
 
 from prometheus_client import Gauge, Counter
 
@@ -44,6 +46,7 @@ class DataFetcher:
         self.db = database
         self.settings = Settings(database)
         self.api = api
+        self._users_being_initialised: set[str] = set()
 
     async def fetch_submission(self, submission_id: int) -> Submission:
         submission = await self.db.get_submission(submission_id)
@@ -59,32 +62,46 @@ class DataFetcher:
         except SubmissionNotFound:
             pass
 
-    async def initialise_user_data(self, username: str) -> User:
-        # Initialise the latest page of the user's gallery and scraps, and the latest sfw page of each
-        gallery_id_lists = await asyncio.gather(
-            self.api.get_gallery_ids(username),
-            self.api.get_scraps_ids(username),
-            self.api.get_gallery_ids(username, sfw_mode=True),
-            self.api.get_scraps_ids(username, sfw_mode=True),
-        )
-        submission_ids = list(set(sum(gallery_id_lists, start=[])))
-        # Maximum of 5 submissions requested at a time
-        sem = Semaphore(5)
+    @contextmanager
+    def _track_user_init_task(self, username: str) -> Iterator[None]:
+        self._users_being_initialised.add(username)
+        try:
+            yield
+        finally:
+            self._users_being_initialised.remove(username)
 
-        async def _fetch_wrapper(sub_id: int) -> None:
-            async with sem:
-                return await self.fetch_submission_if_exists(sub_id)
-        fetch_tasks = [
-            _fetch_wrapper(sub_id)
-            for sub_id in submission_ids
-        ]
-        await asyncio.gather(*fetch_tasks)
-        user = User(
-            username,
-            datetime.datetime.now(datetime.timezone.utc)
-        )
-        await self.db.save_user(user)
-        return user
+    async def initialise_user_data(self, username: str) -> [User]:
+        # Don't re-run initialisation if the user is already being initialised
+        if username in self._users_being_initialised:
+            logger.warning("User already being initialised: %s", username)
+            return None
+        with self._track_user_init_task(username):
+            logger.info("Initialising user: %s", username)
+            # Initialise the latest page of the user's gallery and scraps, and the latest sfw page of each
+            gallery_id_lists = await asyncio.gather(
+                self.api.get_gallery_ids(username),
+                self.api.get_scraps_ids(username),
+                self.api.get_gallery_ids(username, sfw_mode=True),
+                self.api.get_scraps_ids(username, sfw_mode=True),
+            )
+            submission_ids = list(set(sum(gallery_id_lists, start=[])))
+            # Maximum of 5 submissions requested at a time
+            sem = Semaphore(5)
+
+            async def _fetch_wrapper(sub_id: int) -> None:
+                async with sem:
+                    return await self.fetch_submission_if_exists(sub_id)
+            fetch_tasks = [
+                _fetch_wrapper(sub_id)
+                for sub_id in submission_ids
+            ]
+            await asyncio.gather(*fetch_tasks)
+            user = User(
+                username,
+                datetime.datetime.now(datetime.timezone.utc)
+            )
+            await self.db.save_user(user)
+            return user
 
     async def run_data_watcher(self) -> None:
         watcher_startup_time.set_to_current_time()
