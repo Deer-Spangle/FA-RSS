@@ -8,7 +8,8 @@ from prometheus_client import Gauge, Counter
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
 from fa_rss.faexport.errors import SubmissionNotFound
-from fa_rss.faexport.models import User, Submission
+from fa_rss.faexport.models import Submission
+from fa_rss.database.models import User
 from fa_rss.settings import Settings
 
 

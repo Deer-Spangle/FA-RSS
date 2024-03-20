@@ -6,7 +6,8 @@ import psycopg
 from psycopg import AsyncConnection, AsyncCursor
 from psycopg.rows import dict_row
 
-from fa_rss.faexport.models import User, Submission
+from fa_rss.faexport.models import Submission
+from fa_rss.database.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,8 @@ class Database:
                 yield conn, cur
 
     async def get_user(self, username: str) -> Optional[User]:
+        # Usernames are always lowercase
+        username = username.lower()
         async with self.cursor() as (conn, cur):
             logger.info("Fetch user from DB")
             await cur.execute(
@@ -72,6 +75,7 @@ class Database:
             ]
 
     async def list_submissions_by_user_gallery(self, username: str, gallery: str, *, limit: int = 20, sfw_mode: bool = False) -> list[Submission]:
+        username = username.lower()
         rating: Optional[str] = None
         if sfw_mode:
             rating = SFW_RATING
