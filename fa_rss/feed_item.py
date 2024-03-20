@@ -71,6 +71,7 @@ class FeedItemFull(FeedItem):
     def posted_at_pub_date(self) -> Optional[str]:
         return format_datetime(self.submission.posted_at)
 
+    @property
     def description(self) -> str:
         return self.submission.description
 
@@ -98,5 +99,6 @@ class FeedItemPreview(FeedItem):
     def posted_at_pub_date(self) -> Optional[str]:
         return None
 
+    @property
     def description(self) -> str:
         return "(Description not yet available, RSS feed initialising)"
