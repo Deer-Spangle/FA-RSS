@@ -9,7 +9,7 @@ from prometheus_client import Gauge, Counter
 
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
-from fa_rss.faexport.errors import SubmissionNotFound
+from fa_rss.faexport.errors import SubmissionNotFound, FACloudflareError
 from fa_rss.faexport.models import Submission
 from fa_rss.database.models import User
 from fa_rss.settings import Settings
@@ -41,6 +41,8 @@ logger = logging.getLogger(__name__)
 
 
 class DataFetcher:
+    CLOUDFLARE_BACKOFF = 20
+
     def __init__(self, database: Database, api: FAExportClient) -> None:
         self.running = False
         self.db = database
@@ -55,6 +57,14 @@ class DataFetcher:
         submission = await self.api.get_submission(submission_id)
         await self.db.save_submission(submission)
         return submission
+
+    async def fetch_submission_eventually(self, submission_id: int) -> Submission:
+        while self.running:
+            try:
+                return await self.fetch_submission(submission_id)
+            except FACloudflareError:
+                logger.warning("Could not fetch submission as FurAffinity is under cloudflare protection, waiting to retry")
+                await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
 
     async def fetch_submission_if_exists(self, submission_id: int) -> None:
         try:
@@ -124,7 +134,7 @@ class DataFetcher:
             for new_id in new_ids:
                 # Fetch and save new submission
                 try:
-                    new_submission = await self.fetch_submission(new_id)
+                    new_submission = await self.fetch_submission_eventually(new_id)
                 except SubmissionNotFound:
                     watcher_submissions_deleted.inc()
                     continue
@@ -144,7 +154,15 @@ class DataFetcher:
             await asyncio.sleep(10)
 
     async def fetch_latest_submission_id(self) -> int:
-        home_data = await self.api.get_home_page()
+        home_data = None
+        while self.running:
+            try:
+                home_data = await self.api.get_home_page()
+            except FACloudflareError:
+                logger.info("Could not fetch home page as FurAffinity is under Cloudflare protection, waiting before retry")
+                await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
+        if home_data is None:
+            raise ValueError("Could not fetch home page before Data Fetcher shut down")
         latest_id = 0
         for category_list in home_data.values():
             for submission in category_list:
