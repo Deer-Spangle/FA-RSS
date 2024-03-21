@@ -65,6 +65,7 @@ class DataFetcher:
             except FACloudflareError:
                 logger.warning("Could not fetch submission as FurAffinity is under cloudflare protection, waiting to retry")
                 await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
+        raise ValueError("Could not fetch submission before Data Fetcher shut down")
 
     async def fetch_submission_if_exists(self, submission_id: int) -> None:
         try:
@@ -154,15 +155,7 @@ class DataFetcher:
             await asyncio.sleep(10)
 
     async def fetch_latest_submission_id(self) -> int:
-        home_data = None
-        while self.running:
-            try:
-                home_data = await self.api.get_home_page()
-            except FACloudflareError:
-                logger.info("Could not fetch home page as FurAffinity is under Cloudflare protection, waiting before retry")
-                await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
-        if home_data is None:
-            raise ValueError("Could not fetch home page before Data Fetcher shut down")
+        home_data = await self.get_home_page_eventually()
         latest_id = 0
         for category_list in home_data.values():
             for submission in category_list:
@@ -171,3 +164,12 @@ class DataFetcher:
         if latest_id == 0:
             raise ValueError("The home page did not include any submissions")
         return latest_id
+
+    async def get_home_page_eventually(self) -> dict[str, list[dict]]:
+        while self.running:
+            try:
+                return await self.api.get_home_page()
+            except FACloudflareError:
+                logger.info("Could not fetch home page as FurAffinity is under Cloudflare protection, waiting before retry")
+                await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
+        raise ValueError("Could not fetch home page before Data Fetcher shut down")

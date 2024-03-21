@@ -37,6 +37,12 @@
   - Pre-populate all feeds currently being requested from FAExport
   - Change nginx rules to send all gallery.rss and scraps.rss requests to FA RSS
 - Write some automated system tests
+  - Ensure feed URLs all return valid responses
+  - Ensure feed responses are valid RSS?
+  - Ensure new user triggers task?
+    - Ensure you get a mix of completed and preview items?
+  - Ensure usernames are case insensitive
+  - Ensure usernames with weird characters are handled
 - Test that asyncio.gather(API.get_submission()) actually obeys rate limit properly?
 - Publish docker images
 
