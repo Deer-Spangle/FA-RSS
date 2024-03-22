@@ -13,6 +13,7 @@ from quart import Quart, render_template, abort, make_response, Response, reques
 from fa_rss.data_fetcher import DataFetcher
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
+from fa_rss.faexport.errors import FAUserDisabled, UserNotFound
 from fa_rss.feed_item import FeedItemFull, FeedItemPreview
 from fa_rss.settings import Settings
 
@@ -94,11 +95,14 @@ async def gallery_feed(username, gallery):
         logger.info("Scheduled background task to initialise user data: %s", username)
         app.add_background_task(FETCHER.initialise_user_data, username)
         logger.info("Generating preview feed for user: %s", username)
-        if gallery == "gallery":
-            preview_submissions = await API.get_gallery_full(username, sfw_mode=sfw_mode)
-        elif gallery == "scraps":
-            preview_submissions = await API.get_scraps_full(username, sfw_mode=sfw_mode)
-        else:
+        try:
+            if gallery == "gallery":
+                preview_submissions = await API.get_gallery_full(username, sfw_mode=sfw_mode)
+            elif gallery == "scraps":
+                preview_submissions = await API.get_scraps_full(username, sfw_mode=sfw_mode)
+            else:
+                abort(404)
+        except (FAUserDisabled, UserNotFound):
             abort(404)
         preview_submissions = preview_submissions[:feed_length]
         feed_items = []

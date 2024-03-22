@@ -76,7 +76,7 @@ class UserNotFound(FAExportAPIError):
 
 
 class FAUserDisabled(FAExportAPIError):
-    err_type = "account_disabled"
+    err_type = "fa_account_disabled"
 
 
 class FASlowdown(FAExportAPIError):
