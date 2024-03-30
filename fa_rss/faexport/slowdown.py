@@ -19,15 +19,19 @@ class RateLimiter:
 
     async def wait(self) -> None:
         request_id = self._make_request()
-        while not self._my_request_up_next(request_id):
-            await asyncio.sleep(self.time_between_requests.total_seconds())
-        remaining_time = self._remaining_time()
-        while remaining_time > datetime.timedelta(seconds=0):
-            await asyncio.sleep(remaining_time.total_seconds())
+        try:
+            while not self._my_request_up_next(request_id):
+                await asyncio.sleep(self.time_between_requests.total_seconds())
             remaining_time = self._remaining_time()
-        self.request_queue.pop(0)
-        self.last_request = datetime.datetime.now()
-        return
+            while remaining_time > datetime.timedelta(seconds=0):
+                await asyncio.sleep(remaining_time.total_seconds())
+                remaining_time = self._remaining_time()
+            self.request_queue.pop(0)
+            self.last_request = datetime.datetime.now()
+            return
+        except Exception:
+            self.request_queue.remove(request_id)
+            raise
 
     def _remaining_time(self) -> datetime.timedelta:
         last_request = self.last_request
