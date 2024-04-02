@@ -20,8 +20,10 @@ class RateLimiter:
     async def wait(self) -> None:
         request_id = self._make_request()
         try:
-            while not self._my_request_up_next(request_id):
-                await asyncio.sleep(self.time_between_requests.total_seconds())
+            ahead_in_queue = self._requests_ahead_of_mine(request_id)
+            while ahead_in_queue > 0:
+                await asyncio.sleep(self.time_between_requests.total_seconds() * ahead_in_queue)
+                ahead_in_queue = self._requests_ahead_of_mine(request_id)
             remaining_time = self._remaining_time()
             while remaining_time > datetime.timedelta(seconds=0):
                 await asyncio.sleep(remaining_time.total_seconds())
@@ -51,6 +53,9 @@ class RateLimiter:
 
     def _my_request_up_next(self, request_id: str) -> bool:
         return len(self.request_queue) > 0 and self.request_queue[0] == request_id
+
+    def _requests_ahead_of_mine(self, request_id: str) -> int:
+        return self.request_queue.index(request_id)
 
 
 class FASlowdownState:
