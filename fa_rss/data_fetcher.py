@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 class DataFetcher:
     CLOUDFLARE_BACKOFF = 20
+    USER_INIT_TIMEOUT_SECONDS = 20*60
 
     def __init__(self, database: Database, api: FAExportClient) -> None:
         self.running = False
@@ -77,7 +78,8 @@ class DataFetcher:
     def _track_user_init_task(self, username: str) -> Iterator[None]:
         self._users_being_initialised.add(username)
         try:
-            yield
+            async with asyncio.timeout(self.USER_INIT_TIMEOUT_SECONDS):
+                yield
         finally:
             self._users_being_initialised.remove(username)
 
