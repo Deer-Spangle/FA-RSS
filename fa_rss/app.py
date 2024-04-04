@@ -6,6 +6,7 @@ import sys
 from logging.handlers import TimedRotatingFileHandler
 
 import tomlkit
+from aiolimiter import AsyncLimiter
 from hypercorn.middleware import DispatcherMiddleware
 from prometheus_client import make_asgi_app, Counter
 from quart import Quart, render_template, abort, make_response, Response, request
@@ -38,8 +39,13 @@ app.select_jinja_autoescape = lambda filename: filename is not None and filename
 with open("config.json") as f:
     CONFIG = json.load(f)
 DB = Database(CONFIG["database"])
-API = FAExportClient(CONFIG["faexport"]["url"])
-FETCHER = DataFetcher(DB, API)
+BG_API = FAExportClient(
+    CONFIG["faexport"]["url"],
+    limiter=AsyncLimiter(1, 1),
+    slowdown_limiter=AsyncLimiter(1, 4)
+)
+PRIORITY_API = FAExportClient(CONFIG["faexport"]["url"])
+FETCHER = DataFetcher(DB, BG_API)
 # app.add_background_task(FETCHER.run_data_watcher)
 
 logger = logging.getLogger(__name__)
@@ -97,9 +103,9 @@ async def gallery_feed(username, gallery):
         logger.info("Generating preview feed for user: %s", username)
         try:
             if gallery == "gallery":
-                preview_submissions = await API.get_gallery_full(username, sfw_mode=sfw_mode)
+                preview_submissions = await PRIORITY_API.get_gallery_full(username, sfw_mode=sfw_mode)
             elif gallery == "scraps":
-                preview_submissions = await API.get_scraps_full(username, sfw_mode=sfw_mode)
+                preview_submissions = await PRIORITY_API.get_scraps_full(username, sfw_mode=sfw_mode)
             else:
                 abort(404)
         except (FAUserDisabled, UserNotFound):
