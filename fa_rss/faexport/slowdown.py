@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 class FASlowdownState:
     STATUS_LIMIT_REGISTERED = 10_000
 
-    def __init__(self, client: "FAExportClient") -> None:
+    def __init__(self, client: "FAExportClient", limiter: Optional[AsyncLimiter]) -> None:
         self.client = client
         self.ignore = False
         # How slow to go when site is in slowdown mode
-        self.limiter = AsyncLimiter(1, 1)
+        self.limiter = limiter
         # How often to check whether site is in slowdown mode
         self.last_check: Optional[datetime.datetime] = None
         self.status_check_backoff = datetime.timedelta(minutes=5)
@@ -32,7 +32,8 @@ class FASlowdownState:
             logger.debug("Rate limit delay completed")
 
     async def wait(self) -> None:
-        await self.limiter.acquire()
+        if self.limiter is not None:
+            await self.limiter.acquire()
 
     async def should_slowdown(self) -> bool:
         if self.ignore:

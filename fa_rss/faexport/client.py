@@ -1,9 +1,10 @@
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import aiohttp
 import dateutil.parser
+from aiolimiter import AsyncLimiter
 
 from fa_rss.faexport.errors import from_error_data, FAExportClientError, FASlowdown, FAExportAPIError
 from fa_rss.faexport.models import Submission, SiteStatus, SubmissionPreview
@@ -20,13 +21,23 @@ def _sfw_param(sfw_mode: bool, first_param: bool = True) -> str:
 class FAExportClient:
     MAX_ATTEMPTS = 7
 
-    def __init__(self, url: str) -> None:
+    def __init__(
+            self,
+            url: str,
+            *,
+            limiter: Optional[AsyncLimiter] = None,
+            slowdown_limiter: Optional[AsyncLimiter] = AsyncLimiter(1, 2)
+    ) -> None:
         self.url = url.rstrip("/")
         self.session = aiohttp.ClientSession(self.url)
-        self.slowdown = FASlowdownState(self)
+        self.slowdown = FASlowdownState(self, slowdown_limiter)
+        self.limiter = limiter
 
     async def _make_request(self, session: aiohttp.ClientSession, path: str) -> Any:
-        # If FA is in slowdown state, then slow requests a bit
+        # If a limiter is given, then slowdown
+        if self.limiter is not None:
+            await self.limiter.acquire()
+        # If FA is in slowdown state, then slow requests a bit more
         if "status.json" not in path:
             await self.slowdown.wait_if_needed()
         # Make the request
@@ -111,7 +122,7 @@ class FAExportClient:
             resp_data["keywords"],
         )
 
-    async def get_home_page(self, *, sfw_mode: bool = False) -> dict[str, list[dict]]:
+    async def get_home_page(self, *, sfw_mode: bool = False) -> dict[str, list[dict]]:  # TODO: model pls
         logger.info("Fetching home page")
         sfw_param = _sfw_param(sfw_mode)
         return await self._request_with_retry(f"/home.json{sfw_param}")
