@@ -19,19 +19,20 @@ def _sfw_param(sfw_mode: bool, first_param: bool = True) -> str:
 
 
 class FAExportClient:
-    MAX_ATTEMPTS = 7
 
     def __init__(
             self,
             url: str,
             *,
             limiter: Optional[AsyncLimiter] = None,
-            slowdown_limiter: Optional[AsyncLimiter] = AsyncLimiter(1, 2)
+            slowdown_limiter: Optional[AsyncLimiter] = AsyncLimiter(1, 2),
+            max_attempts: int = 7,
     ) -> None:
         self.url = url.rstrip("/")
         self.session = aiohttp.ClientSession(self.url)
         self.slowdown = FASlowdownState(self, slowdown_limiter)
         self.limiter = limiter
+        self.max_attempts = max_attempts
 
     async def _make_request(self, session: aiohttp.ClientSession, path: str) -> Any:
         # If a limiter is given, then slowdown
@@ -51,7 +52,7 @@ class FAExportClient:
         attempts = 0
         last_exception = None
         async with aiohttp.ClientSession(self.url) as session:
-            while attempts < self.MAX_ATTEMPTS:
+            while attempts < self.max_attemps:
                 try:
                     return await self._make_request(session, path)
                 except FASlowdown as e:

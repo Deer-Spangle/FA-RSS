@@ -42,7 +42,8 @@ DB = Database(CONFIG["database"])
 BG_API = FAExportClient(
     CONFIG["faexport"]["url"],
     limiter=AsyncLimiter(1, 1),
-    slowdown_limiter=AsyncLimiter(1, 4)
+    slowdown_limiter=AsyncLimiter(1, 4),
+    max_attempts=15,
 )
 PRIORITY_API = FAExportClient(CONFIG["faexport"]["url"])
 FETCHER = DataFetcher(DB, BG_API)
