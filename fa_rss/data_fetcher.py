@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import logging
 from asyncio import Semaphore
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from typing import Iterator
 
 from prometheus_client import Gauge, Counter
@@ -74,8 +74,8 @@ class DataFetcher:
         except SubmissionNotFound:
             pass
 
-    @contextmanager
-    def _track_user_init_task(self, username: str) -> Iterator[None]:
+    @asynccontextmanager
+    async def _track_user_init_task(self, username: str) -> Iterator[None]:
         self._users_being_initialised.add(username)
         try:
             async with asyncio.timeout(self.USER_INIT_TIMEOUT_SECONDS):
@@ -88,7 +88,7 @@ class DataFetcher:
         if username in self._users_being_initialised:
             logger.warning("User already being initialised: %s", username)
             return None
-        with self._track_user_init_task(username):
+        async with self._track_user_init_task(username):
             logger.info("Initialising user: %s", username)
             # Initialise the latest page of the user's gallery and scraps, and the latest sfw page of each
             gallery_id_lists = await asyncio.gather(
