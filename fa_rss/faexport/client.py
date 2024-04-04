@@ -52,7 +52,7 @@ class FAExportClient:
         attempts = 0
         last_exception = None
         async with aiohttp.ClientSession(self.url) as session:
-            while attempts < self.max_attemps:
+            while attempts < self.max_attempts:
                 try:
                     return await self._make_request(session, path)
                 except FASlowdown as e:
