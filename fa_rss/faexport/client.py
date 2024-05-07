@@ -47,8 +47,10 @@ class FAExportClient:
                 data = await resp.json()
             except ContentTypeError as e:
                 if resp.status == 502:
+                    logger.warning("Received 502 gateway error from FAExport API host")
                     raise FAExportHostUnavailable("Bad gateway error (502) from FAExport API host.")
                 else:
+                    logger.warning("Could not decode API response as JSON", exc_info=e)
                     raise e
             if isinstance(data, dict) and "error_type" in data:
                 raise from_error_data(data, path)
