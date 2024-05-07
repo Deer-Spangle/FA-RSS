@@ -6,7 +6,7 @@ import aiohttp
 import dateutil.parser
 from aiolimiter import AsyncLimiter
 
-from fa_rss.faexport.errors import from_error_data, FAExportClientError, FASlowdown, FAExportAPIError
+from fa_rss.faexport.errors import from_error_data, FAExportClientError, FASlowdown, FAExportAPIError, FAExportHostUnavailable
 from fa_rss.faexport.models import Submission, SiteStatus, SubmissionPreview
 from fa_rss.faexport.slowdown import FASlowdownState
 
@@ -43,7 +43,13 @@ class FAExportClient:
             await self.slowdown.wait_if_needed()
         # Make the request
         async with session.get(path) as resp:
-            data = await resp.json()
+            try:
+                data = await resp.json()
+            except ContentTypeError as e:
+                if resp.status == 502:
+                    raise FAExportHostUnavailable("Bad gateway error (502) from FAExport API host.")
+                else:
+                    raise e
             if isinstance(data, dict) and "error_type" in data:
                 raise from_error_data(data, path)
             return data

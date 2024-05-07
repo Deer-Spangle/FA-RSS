@@ -21,6 +21,18 @@ class FAExportAPIError(FAExportError):
         return f"{type(self).__name__}(path={self.api_path}, msg={msg})"
 
 
+class FAExportHostError(FAExportError):
+    def __init__(self, msg: str) -> None:
+        self.msg = msg
+
+    def __str__(self) -> str:
+        return f"{type(self).__name__}({self.msg})"
+
+
+class FAExportHostUnavailable(FAExportHostError):
+    pass
+
+
 class FAExportClientError(FAExportError):
     def __init__(self, msg: str) -> None:
         self.msg = msg

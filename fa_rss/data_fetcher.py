@@ -9,7 +9,7 @@ from prometheus_client import Gauge, Counter
 
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
-from fa_rss.faexport.errors import SubmissionNotFound, FACloudflareError
+from fa_rss.faexport.errors import SubmissionNotFound, FACloudflareError, FAExportHostUnavailable
 from fa_rss.faexport.models import Submission
 from fa_rss.database.models import User
 from fa_rss.settings import Settings
@@ -65,6 +65,9 @@ class DataFetcher:
                 return await self.fetch_submission(submission_id)
             except FACloudflareError:
                 logger.warning("Could not fetch submission as FurAffinity is under cloudflare protection, waiting to retry")
+                await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
+            except FAExportHostUnavailable:
+                logger.warning("Could not reach FAExport API host server, waiting to retry")
                 await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
         raise ValueError("Could not fetch submission before Data Fetcher shut down")
 
