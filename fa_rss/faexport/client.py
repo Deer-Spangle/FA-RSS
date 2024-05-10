@@ -3,6 +3,7 @@ import logging
 from typing import Any, Optional
 
 import aiohttp
+from aiohttp.client_exceptions import ContentTypeError
 import dateutil.parser
 from aiolimiter import AsyncLimiter
 
