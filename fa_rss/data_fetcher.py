@@ -1,3 +1,5 @@
+from sys import exc_value, exc_info
+
 import asyncio
 import datetime
 import logging
@@ -9,7 +11,7 @@ from prometheus_client import Gauge, Counter
 
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
-from fa_rss.faexport.errors import SubmissionNotFound, FACloudflareError, FAExportHostUnavailable
+from fa_rss.faexport.errors import SubmissionNotFound, FACloudflareError, FAExportHostUnavailable, FAExportUnknownError
 from fa_rss.faexport.models import Submission
 from fa_rss.database.models import User
 from fa_rss.settings import Settings
@@ -42,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 class DataFetcher:
     CLOUDFLARE_BACKOFF = 20
+    RETRY_ATTEMPTS = 10
     USER_INIT_TIMEOUT_SECONDS = 20*60
 
     def __init__(self, database: Database, api: FAExportClient) -> None:
@@ -60,7 +63,9 @@ class DataFetcher:
         return submission
 
     async def fetch_submission_eventually(self, submission_id: int) -> Submission:
+        attempt_count = 0
         while self.running:
+            attempt_count += 1
             try:
                 return await self.fetch_submission(submission_id)
             except FACloudflareError:
@@ -68,6 +73,11 @@ class DataFetcher:
                 await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
             except FAExportHostUnavailable:
                 logger.warning("Could not reach FAExport API host server, waiting to retry")
+                await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
+            except FAExportUnknownError as e:
+                if attempt_count >= self.RETRY_ATTEMPTS:
+                    raise e
+                logger.warning("Unknown error from FAExport, attempt %s/%s waiting to retry ", attempt_count, self.RETRY_ATTEMPTS, exc_info=e)
                 await asyncio.sleep(self.CLOUDFLARE_BACKOFF)
         raise ValueError("Could not fetch submission before Data Fetcher shut down")
 
