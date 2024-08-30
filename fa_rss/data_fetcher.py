@@ -1,5 +1,3 @@
-from sys import exc_value, exc_info
-
 import asyncio
 import datetime
 import logging
