@@ -9,7 +9,8 @@ from prometheus_client import Gauge, Counter
 
 from fa_rss.database.database import Database
 from fa_rss.faexport.client import FAExportClient
-from fa_rss.faexport.errors import SubmissionNotFound, FACloudflareError, FAExportHostUnavailable, FAExportUnknownError
+from fa_rss.faexport.errors import SubmissionNotFound, FACloudflareError, FAExportHostUnavailable, FAExportUnknownError, \
+    FAUserDisabled
 from fa_rss.faexport.models import Submission
 from fa_rss.database.models import User
 from fa_rss.settings import Settings
@@ -84,6 +85,8 @@ class DataFetcher:
             await self.fetch_submission(submission_id)
         except SubmissionNotFound:
             pass
+        except FAUserDisabled:
+            pass
 
     @asynccontextmanager
     async def _track_user_init_task(self, username: str) -> Iterator[None]:
@@ -149,7 +152,7 @@ class DataFetcher:
                 # Fetch and save new submission
                 try:
                     new_submission = await self.fetch_submission_eventually(new_id)
-                except SubmissionNotFound:
+                except (SubmissionNotFound, FAUserDisabled):
                     watcher_submissions_deleted.inc()
                     continue
                 # Update metrics
